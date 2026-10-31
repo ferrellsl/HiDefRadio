@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">HiDef Radio</string>
+    <string name="app_name">HiDef Radio Maps</string>
 
     <!-- Milestone 9a: tuning -->
     <string name="tune">Tune</string>

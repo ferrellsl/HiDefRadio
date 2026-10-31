@@ -29,14 +29,14 @@ android {
     }
 
     defaultConfig {
-        applicationId = "io.github.derek20la.hidefradio"
+        applicationId = "io.github.ferrellsl.hidefradio"
         minSdk = 26
         targetSdk = 37
         // versionCode = the BUILD NUMBER: goes up by one with every step that changes the app,
         // and must go up with every upload to Google Play. versionName is what people see.
         // Settings > About shows both: "Version 1.0-beta1 (build 1)".
         versionCode = 38
-        versionName = "1.3.1"
+        versionName = "1.3.1-maps"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
