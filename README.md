@@ -1,12 +1,14 @@
 # HiDef Radio
 
-> **This fork adds traffic and weather maps** to [HiDef Radio by derek20la](https://github.com/derek20la/HiDefRadio): both are received over the air, with no internet. Download **HiDef Radio Maps** from the [Releases](https://github.com/ferrellsl/HiDefRadio/releases) page. It installs alongside the original app.
+> **This fork adds traffic and weather maps and ad image blocking** to [HiDef Radio by derek20la](https://github.com/derek20la/HiDefRadio). The maps are received over the air, with no internet. Download **HiDef Radio Maps** from the [Releases](https://github.com/ferrellsl/HiDefRadio/releases) page. It installs alongside the original app.
 
 | Traffic | Weather radar |
 |---|---|
 | ![Traffic map received over the air](docs/images/traffic-map.png) | ![Weather radar animation received over the air](docs/images/weather-radar.gif) |
 
 Stations with the Total Traffic Network or HERE data services send these maps. The radar plays through about 90 minutes of frames, which are kept for 3 hours across restarts. Maps appear under the signal line while the signal details are closed; on a tablet, tap the **Signal details** heading to close them. Map data © OpenStreetMap contributors.
+
+**Ad image blocking:** stations often send ads as the album art. Hold a finger on the picture and tap **Block**, and it won't be shown again, even when the station re-sends it. **Settings → Clear blocked pictures** clears the list. This blocks pictures only; the audio isn't changed.
 
 ---
 
@@ -61,6 +63,9 @@ No root, no computer, no internet connection needed (a dongle on another compute
 ### Traffic and weather maps
 - On stations that carry them (the Total Traffic Network or HERE data services), a **traffic map** and **weather radar** received over the air, no internet needed. They appear under the signal line while the signal details are closed; on a tablet, tap the "Signal details" heading to close them.
 - The radar plays through about 90 minutes of frames, and they're kept for a few hours across restarts. The base map is from OpenStreetMap.
+
+### Blocking ad pictures
+- Hold a finger on the album art and tap **Block**, and that picture won't be shown again. Settings can clear the list.
 
 ### For radio people
 
