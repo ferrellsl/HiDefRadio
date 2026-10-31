@@ -1,13 +1,17 @@
 package io.github.derek20la.hidefradio
 
+import android.app.Dialog
 import android.content.Context
 import android.graphics.BitmapFactory
 import android.os.Handler
 import android.os.Looper
 import android.text.format.DateFormat
 import android.util.AttributeSet
+import android.view.GestureDetector
 import android.view.Gravity
+import android.view.MotionEvent
 import android.view.View
+import android.view.WindowManager
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -19,9 +23,14 @@ import java.util.Date
  * The traffic and weather maps (MapFeed), under the signal line while the signal details are
  * closed: two tabs, the map, and for the radar a slider through the frames and a play button.
  * The radar plays by itself once there are two frames, until someone pauses it or uses the slider.
+ * A double tap on the map fills the screen, and another comes back: a tablet in a car makes a good
+ * radio, and there the map should be big, the buttons easy to hit and the screen stay on.
  */
-class MapPanel @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null) :
-    LinearLayout(context, attrs) {
+class MapPanel @JvmOverloads constructor(
+    context: Context,
+    attrs: AttributeSet? = null,
+    private val fullScreen: Boolean = false,
+) : LinearLayout(context, attrs) {
 
     private val trafficTab = tabButton(R.string.map_traffic)
     private val weatherTab = tabButton(R.string.map_weather)
@@ -38,6 +47,8 @@ class MapPanel @JvmOverloads constructor(context: Context, attrs: AttributeSet? 
     private var frameShown: MapFeed.WeatherFrame? = null
     private var playing = false
     private var autoPlay = true
+    private var dialog: Dialog? = null
+    private var onDoubleTap: () -> Unit = { openFullScreen() }
 
     private val player = object : Runnable {
         override fun run() {
@@ -65,7 +76,7 @@ class MapPanel @JvmOverloads constructor(context: Context, attrs: AttributeSet? 
         trafficTab.setOnClickListener { pick(false) }
         weatherTab.setOnClickListener { pick(true) }
 
-        note.textSize = 12f
+        note.textSize = if (fullScreen) 18f else 12f
         addView(note, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
 
         radarRow.gravity = Gravity.CENTER_VERTICAL
@@ -78,9 +89,26 @@ class MapPanel @JvmOverloads constructor(context: Context, attrs: AttributeSet? 
         radarRow.addView(slider, LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f))
         addView(radarRow)          // (above the map, which can fill the pane)
 
-        image.adjustViewBounds = true
+        image.adjustViewBounds = !fullScreen
         image.scaleType = ImageView.ScaleType.FIT_CENTER
-        addView(image, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
+        addView(image, if (fullScreen) LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f)
+            else LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
+        val taps = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {
+            override fun onDown(e: MotionEvent) = true
+            override fun onDoubleTap(e: MotionEvent): Boolean {
+                this@MapPanel.onDoubleTap()
+                return true
+            }
+        })
+        image.setOnTouchListener { view, event ->
+            if (event.action == MotionEvent.ACTION_UP) view.performClick()
+            taps.onTouchEvent(event)
+        }
+        if (fullScreen) {
+            setBackgroundColor(android.graphics.Color.BLACK)
+            for (b in listOf(trafficTab, weatherTab, playButton)) b.textSize = 22f
+            slider.minimumHeight = (48 * resources.displayMetrics.density).toInt()
+        }
         slider.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(bar: SeekBar, progress: Int, fromUser: Boolean) {
                 if (!fromUser) return
@@ -92,6 +120,35 @@ class MapPanel @JvmOverloads constructor(context: Context, attrs: AttributeSet? 
             override fun onStartTrackingTouch(bar: SeekBar) {}
             override fun onStopTrackingTouch(bar: SeekBar) {}
         })
+    }
+
+    private fun openFullScreen() {
+        if (dialog != null) return
+        val big = MapPanel(context, null, true)
+        val screen = Dialog(context, android.R.style.Theme_Black_NoTitleBar_Fullscreen)
+        big.onDoubleTap = { screen.dismiss() }
+        screen.setContentView(big)
+        screen.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        val ticker = object : Runnable {
+            override fun run() {
+                big.refresh()
+                handler.postDelayed(this, 1000)
+            }
+        }
+        screen.setOnDismissListener {
+            handler.removeCallbacks(ticker)
+            dialog = null
+            // (a tab or the play button may have changed there)
+            val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            showWeather = prefs.getBoolean(KEY_WEATHER, false)
+            autoPlay = prefs.getBoolean(KEY_AUTOPLAY, true)
+            seen = -1
+            refresh()
+        }
+        dialog = screen
+        setPlaying(false)
+        screen.show()
+        ticker.run()
     }
 
     private fun tabButton(text: Int) =
@@ -128,7 +185,7 @@ class MapPanel @JvmOverloads constructor(context: Context, attrs: AttributeSet? 
             if (atNewest || frame >= MapFeed.frames.size) frame = max(0, MapFeed.frames.size - 1)
             show()
         }
-        if (autoPlay && showWeather && !playing && MapFeed.frames.size > 1) setPlaying(true)
+        if (autoPlay && showWeather && !playing && dialog == null && MapFeed.frames.size > 1) setPlaying(true)
     }
 
     private fun show() {
@@ -173,6 +230,7 @@ class MapPanel @JvmOverloads constructor(context: Context, attrs: AttributeSet? 
 
     override fun onDetachedFromWindow() {
         setPlaying(false)
+        dialog?.dismiss()
         super.onDetachedFromWindow()
     }
 
