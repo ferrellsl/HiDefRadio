@@ -51,6 +51,7 @@ No root, no computer, no internet connection needed (a dongle on another compute
 ### Traffic and weather maps
 - On stations that carry them (the Total Traffic Network or HERE data services), a **traffic map** and **weather radar** received over the air, no internet needed. They appear under the signal line while the signal details are closed; on a tablet, tap the "Signal details" heading to close them.
 - The radar plays through about 90 minutes of frames, and they're kept for a few hours across restarts. The base map is from OpenStreetMap.
+- **Double-tap a map to fill the screen**, with bigger buttons and the screen kept on: handy for a tablet used as a car radio. Double-tap again, or press Back, to return.
 
 ### For radio people
 
