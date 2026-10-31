@@ -1,5 +1,15 @@
 # HiDef Radio
 
+> **This fork adds traffic and weather maps** to [HiDef Radio by derek20la](https://github.com/derek20la/HiDefRadio): both are received over the air, with no internet. Download **HiDef Radio Maps** from the [Releases](https://github.com/ferrellsl/HiDefRadio/releases) page. It installs alongside the original app.
+
+| Traffic | Weather radar |
+|---|---|
+| ![Traffic map received over the air](docs/images/traffic-map.png) | ![Weather radar over a base map](docs/images/weather-radar.jpg) |
+
+Stations with the Total Traffic Network or HERE data services send these maps. The radar plays through about 90 minutes of frames, which are kept for 3 hours across restarts. Maps appear under the signal line while the signal details are closed; on a tablet, tap the **Signal details** heading to close them. Map data © OpenStreetMap contributors.
+
+---
+
 ![HiDef Radio: over-the-air FM and digital radio for RTL-SDR dongles](store/feature_graphic_1024x500.png)
 
 An Android radio for the **RTL-SDR dongle**. Plug the dongle into the phone with a USB-OTG adapter and listen to **HD Radio™ (NRSC-5)** and ordinary **analog FM**, with a smooth blend between the two, like a car radio.
