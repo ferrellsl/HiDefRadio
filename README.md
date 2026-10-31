@@ -6,7 +6,7 @@
 |---|---|
 | ![Traffic map received over the air](docs/images/traffic-map.png) | ![Weather radar animation received over the air](docs/images/weather-radar.gif) |
 
-Stations with the Total Traffic Network or HERE data services send these maps. The radar plays through about 90 minutes of frames, which are kept for 3 hours across restarts. Maps appear under the signal line while the signal details are closed; on a tablet, tap the **Signal details** heading to close them. Map data © OpenStreetMap contributors.
+Stations with the Total Traffic Network or HERE data services send these maps. The radar plays through about 90 minutes of frames, which are kept for 3 hours across restarts. Maps appear under the signal line while the signal details are closed; on a tablet, tap the **Signal details** heading to close them. **Double-tap a map to fill the screen**, with bigger buttons and the screen kept on, which suits a tablet used as a car radio; double-tap again to come back. Map data © OpenStreetMap contributors.
 
 **Ad image blocking:** stations often send ads as the album art. Hold a finger on the picture and tap **Block**, and it won't be shown again, even when the station re-sends it. **Settings → Clear blocked pictures** clears the list. This blocks pictures only; the audio isn't changed.
 
