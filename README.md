@@ -4,7 +4,7 @@
 
 | Traffic | Weather radar |
 |---|---|
-| ![Traffic map received over the air](docs/images/traffic-map.png) | ![Weather radar over a base map](docs/images/weather-radar.jpg) |
+| ![Traffic map received over the air](docs/images/traffic-map.png) | ![Weather radar animation received over the air](docs/images/weather-radar.gif) |
 
 Stations with the Total Traffic Network or HERE data services send these maps. The radar plays through about 90 minutes of frames, which are kept for 3 hours across restarts. Maps appear under the signal line while the signal details are closed; on a tablet, tap the **Signal details** heading to close them. Map data © OpenStreetMap contributors.
 
