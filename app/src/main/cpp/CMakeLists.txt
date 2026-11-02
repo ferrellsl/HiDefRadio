@@ -32,8 +32,12 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O2")
 # what every arm64 phone has (decision of 2026-10-07: never exclude an old phone
 # over one missing instruction). No -ffast-math anywhere - results must stay
 # reproducible against the survey recordings.
+# 32-bit ARM (armeabi-v7a, for car head units): the NDK builds it with NEON on
+# by default. vec4.hpp fills in what 32-bit NEON lacks (division, square root, fused
+# multiply-add).
 # ---------------------------------------------------------------------------
-if (ANDROID_ABI STREQUAL "arm64-v8a" OR CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64")
+if (ANDROID_ABI STREQUAL "arm64-v8a" OR ANDROID_ABI STREQUAL "armeabi-v7a"
+        OR CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64")
     set(HIDEF_NEON ON)
 else ()
     set(HIDEF_NEON OFF)
