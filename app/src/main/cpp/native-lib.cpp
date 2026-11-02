@@ -916,17 +916,18 @@ Java_io_github_derek20la_hidefradio_RadioEngine_closeDongleNative(
 // as files (TTN: TMT_*, DWRI_*, DWRO_*) or as HERE images. They're kept in a short queue for Kotlin
 // (MapFeed), which stitches them; it empties the queue every couple of seconds, so the limit is
 // only there for when the app is held up. One line of tab-separated text, then the file:
-//   kind, name, lat1, lon1, lat2, lon2
-// kind: L = a LOT file, T = a HERE traffic tile, W = a HERE weather image. Under g_statusMutex.
+//   kind, name, lat1, lon1, lat2, lon2, time
+// kind: L = a LOT file, T = a HERE traffic tile, W = a HERE weather image. time: when a HERE image
+// was made, in ms since 1970 (0 for LOT files: theirs is in the name). Under g_statusMutex.
 static std::deque<std::string> g_mapItems;
 static std::atomic<int> g_mapEpoch{0};          // goes up when the station changes
 static const size_t MAX_MAP_ITEMS = 64;
 
 static void queueMapItem(char kind, const char *name, float lat1, float lon1, float lat2, float lon2,
-                         const uint8_t *data, size_t size) {
+                         long long timeMs, const uint8_t *data, size_t size) {
     if (data == nullptr || size == 0) return;
     char head[256];
-    snprintf(head, sizeof head, "%c\t%s\t%.5f\t%.5f\t%.5f\t%.5f\n", kind, name ? name : "", lat1, lon1, lat2, lon2);
+    snprintf(head, sizeof head, "%c\t%s\t%.5f\t%.5f\t%.5f\t%.5f\t%lld\n", kind, name ? name : "", lat1, lon1, lat2, lon2, timeMs);
     std::string item(head);
     item.append(reinterpret_cast<const char *>(data), size);
     g_mapItems.push_back(std::move(item));
@@ -938,7 +939,7 @@ static void queueMapItem(char kind, const char *name, float lat1, float lon1, fl
 static void onLotFile(const nrsc5_event_t *evt) {
     const char *name = evt->lot.name ? evt->lot.name : "";
     if (strncmp(name, "TMT_", 4) == 0 || strncmp(name, "DWRI_", 5) == 0 || strncmp(name, "DWRO_", 5) == 0) {
-        queueMapItem('L', name, 0, 0, 0, 0, evt->lot.data, evt->lot.size);
+        queueMapItem('L', name, 0, 0, 0, 0, 0, evt->lot.data, evt->lot.size);
         return;
     }
     uint32_t mime = evt->lot.component ? evt->lot.component->data.mime : 0;
@@ -1174,6 +1175,7 @@ static void onNrsc5Event(const nrsc5_event_t *evt, void * /* opaque */) {
             queueMapItem(evt->here_image.image_type == NRSC5_HERE_IMAGE_TRAFFIC ? 'T' : 'W', evt->here_image.name,
                          evt->here_image.latitude1, evt->here_image.longitude1,
                          evt->here_image.latitude2, evt->here_image.longitude2,
+                         evt->here_image.time_utc ? timegm(evt->here_image.time_utc) * 1000LL : 0,
                          evt->here_image.data, evt->here_image.size);
             break;
         case NRSC5_EVENT_AUDIO:

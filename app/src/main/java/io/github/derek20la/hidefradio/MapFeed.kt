@@ -10,7 +10,10 @@ import android.os.Build
 import android.util.Log
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.text.ParseException
+import java.text.SimpleDateFormat
 import java.util.Locale
+import java.util.TimeZone
 import java.util.concurrent.Executors
 import kotlin.math.asinh
 import kotlin.math.max
@@ -32,6 +35,9 @@ import kotlin.math.tan
  * that came with it. The radar repeats itself between updates, so only a picture that changed
  * makes a new frame; about 90 minutes of frames are kept for the slider, on disk too, by area,
  * so they're still there after a restart or on another station with the same radar.
+ *
+ * The times are when the station made the map, not when it got here: TTN has it in the file name,
+ * in UTC, HERE sends it with the image. A map can take minutes to arrive, or be an old one repeated.
  *
  * RadioService calls poll() while the radio runs, so the maps are ready when someone looks;
  * the work is done on a thread of its own. The screen (MapPanel) reads traffic and frames, and
@@ -65,11 +71,13 @@ object MapFeed {
 
     // the thread's own: the tiles so far
     private val tiles = arrayOfNulls<Bitmap>(9)
+    private val tileTimes = LongArray(9)
     private var trafficHere: Boolean? = null        // which feed the tiles are from; null: none yet
 
     private var corners: DoubleArray? = null        // north, west, south, east
     private var baseMap: Bitmap? = null
     private var waitingOverlay: ByteArray? = null   // a radar picture that came before its corners
+    private var waitingTime = 0L
     private var lastOverlay = 0
     private var area = ""                           // the folder of the frames in use
 
@@ -140,21 +148,35 @@ object MapFeed {
         val end = item.indexOf('\n'.code.toByte())
         if (end < 0) return
         val head = String(item, 0, end, Charsets.UTF_8).split('\t')
-        if (head.size < 6) return
+        if (head.size < 7) return
         val data = item.copyOfRange(end + 1, item.size)
         val name = head[1]
         val box = DoubleArray(4) { head[2 + it].toDoubleOrNull() ?: 0.0 }
+        val made = head[6].toLongOrNull()?.takeIf { it > 0 } ?: timeInName(name) ?: System.currentTimeMillis()
         when (head[0]) {
-            "T" -> trafficTile(data, hereTilePosition(name), here = true)
+            "T" -> trafficTile(data, hereTilePosition(name), here = true, made)
             "W" -> {
                 setCorners(context, box)
-                weather(context, data)
+                weather(context, data, made)
             }
             else -> when {
-                name.startsWith("TMT_") -> trafficTile(data, ttnTilePosition(name), here = false)
+                name.startsWith("TMT_") -> trafficTile(data, ttnTilePosition(name), here = false, made)
                 name.startsWith("DWRI_") -> weatherInfo(context, String(data, Charsets.UTF_8))
-                name.startsWith("DWRO_") -> weather(context, data)
+                name.startsWith("DWRO_") -> weather(context, data, made)
             }
+        }
+    }
+
+    /** "TMT_02qa5k_3_2_20220702_0654_03c2.png": 2 July 2022, 06:54 UTC. Null if it has no time. */
+    internal fun timeInName(name: String): Long? {
+        val found = Regex("_(\\d{8})_(\\d{4})_").find(name) ?: return null
+        val format = SimpleDateFormat("yyyyMMddHHmm", Locale.US)
+        format.timeZone = TimeZone.getTimeZone("UTC")
+        format.isLenient = false
+        return try {
+            format.parse(found.groupValues[1] + found.groupValues[2])?.time
+        } catch (e: ParseException) {
+            null
         }
     }
 
@@ -182,19 +204,20 @@ object MapFeed {
         return if (r in 0..2 && c in 0..2) r * 3 + c else -1
     }
 
-    private fun trafficTile(data: ByteArray, position: Int, here: Boolean) {
+    private fun trafficTile(data: ByteArray, position: Int, here: Boolean, made: Long) {
         if (position < 0) return
         if (trafficHere != null && trafficHere != here) tiles.fill(null)
         trafficHere = here
         tiles[position] = BitmapFactory.decodeByteArray(data, 0, data.size) ?: return
+        tileTimes[position] = made
         if (tiles.any { it == null }) return
         val w = tiles[0]!!.width
         val h = tiles[0]!!.height
         val map = Bitmap.createBitmap(w * 3, h * 3, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(map)
         for (i in tiles.indices) canvas.drawBitmap(tiles[i]!!, (i % 3) * w.toFloat(), (i / 3) * h.toFloat(), null)
+        trafficTimeMs = tileTimes.max()     // (tiles are renewed one by one: the newest says it)
         traffic = map
-        trafficTimeMs = System.currentTimeMillis()
         generation++
     }
 
@@ -208,7 +231,7 @@ object MapFeed {
         setCorners(context, numbers.take(4).toDoubleArray())
         waitingOverlay?.let {
             waitingOverlay = null
-            weather(context, it)
+            weather(context, it, waitingTime)
         }
     }
 
@@ -262,23 +285,43 @@ object MapFeed {
         return Rect(max(x1, 0), max(y1, 0), min(x2, width), min(y2, height))
     }
 
-    private fun weather(context: Context, data: ByteArray) {
+    private fun weather(context: Context, data: ByteArray, made: Long) {
         val base = baseMap
         if (corners == null) {
             waitingOverlay = data       // its corners are on their way (the DWRI file)
+            waitingTime = made
             return
         }
         val hash = data.contentHashCode()
-        if (hash == lastOverlay) return
+        if (hash == lastOverlay) {
+            renewNewest(context, hash, made)
+            return
+        }
         val overlay = BitmapFactory.decodeByteArray(data, 0, data.size) ?: return
         lastOverlay = hash
 
         val picture = if (base != null) compose(base, overlay) else overlay
         val out = ByteArrayOutputStream(256 * 1024)
         picture.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, out)
-        val frame = WeatherFrame(out.toByteArray(), System.currentTimeMillis())
-        frames = (frames + frame).takeLast(MAX_FRAMES)
+        val frame = WeatherFrame(out.toByteArray(), made)
+        frames = (frames + frame).sortedBy { it.timeMs }.takeLast(MAX_FRAMES)
         saveFrame(context, frame, hash)
+        generation++
+    }
+
+    /**
+     * The same picture, made again: a quiet sky looks the same for hours. No new frame, but the
+     * newest one takes the new time, or a good map would look old. A repeat of the same file has
+     * the same time and changes nothing.
+     */
+    private fun renewNewest(context: Context, hash: Int, made: Long) {
+        val newest = frames.lastOrNull() ?: return
+        if (made <= newest.timeMs) return
+        frames = frames.dropLast(1) + WeatherFrame(newest.jpeg, made)
+        if (area.isNotEmpty()) {
+            val folder = File(File(context.cacheDir, FRAMES_DIR), area)
+            File(folder, "${newest.timeMs}_$hash.jpg").renameTo(File(folder, "${made}_$hash.jpg"))
+        }
         generation++
     }
 
