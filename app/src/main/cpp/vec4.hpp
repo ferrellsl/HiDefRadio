@@ -55,13 +55,31 @@ static inline f4 zero()                          { return vdupq_n_f32(0.f); }
 static inline f4 add(f4 a, f4 b)                 { return vaddq_f32(a, b); }
 static inline f4 sub(f4 a, f4 b)                 { return vsubq_f32(a, b); }
 static inline f4 mul(f4 a, f4 b)                 { return vmulq_f32(a, b); }
+#if defined(__ARM_FEATURE_FMA)
 static inline f4 fma(f4 acc, f4 a, f4 b)         { return vfmaq_f32(acc, a, b); }  // acc + a*b, one rounding
 static inline f4 fms(f4 acc, f4 a, f4 b)         { return vfmsq_f32(acc, a, b); }  // acc - a*b
+#else
+// (32-bit ARM: not every processor has the fused one. Two roundings, as in the scalar code.)
+static inline f4 fma(f4 acc, f4 a, f4 b)         { return vmlaq_f32(acc, a, b); }
+static inline f4 fms(f4 acc, f4 a, f4 b)         { return vmlsq_f32(acc, a, b); }
+#endif
 static inline f4 min(f4 a, f4 b)                 { return vminq_f32(a, b); }
 static inline f4 max(f4 a, f4 b)                 { return vmaxq_f32(a, b); }
 static inline f4 abs(f4 a)                       { return vabsq_f32(a); }
+#if defined(__aarch64__)
 static inline f4 sqrt(f4 a)                      { return vsqrtq_f32(a); }         // IEEE sqrt, like sqrtf
 static inline f4 div(f4 a, f4 b)                 { return vdivq_f32(a, b); }       // IEEE division
+#else
+// (32-bit NEON has neither, only rough estimates: a lane at a time, same answers.)
+static inline f4 sqrt(f4 a) {
+    for (int i = 0; i < 4; i++) a[i] = std::sqrt(a[i]);
+    return a;
+}
+static inline f4 div(f4 a, f4 b) {
+    for (int i = 0; i < 4; i++) a[i] /= b[i];
+    return a;
+}
+#endif
 static inline m4 cmpgt(f4 a, f4 b)               { return vcgtq_f32(a, b); }       // a > b
 static inline m4 cmplt(f4 a, f4 b)               { return vcltq_f32(a, b); }       // a < b
 static inline f4 select(m4 m, f4 a, f4 b)        { return vbslq_f32(m, a, b); }    // m ? a : b, per lane

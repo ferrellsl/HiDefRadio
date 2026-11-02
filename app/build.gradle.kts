@@ -40,10 +40,11 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // Build native (C/C++) code only for 64-bit ARM phones for now.
-        // To add 32-bit ARM later: listOf("arm64-v8a", "armeabi-v7a")
+        // Native (C/C++) code for 64-bit ARM phones, and 32-bit ARM: many car head units.
+        // gradlew -Pabi=armeabi-v7a builds just one, to try the 32-bit code on a 64-bit phone.
         ndk {
-            abiFilters += listOf("arm64-v8a")
+            abiFilters += (findProperty("abi") as String?)?.let { listOf(it) }
+                ?: listOf("arm64-v8a", "armeabi-v7a")
         }
     }
 
