@@ -2,7 +2,10 @@ package io.github.derek20la.hidefradio
 
 import android.app.Dialog
 import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.Paint
 import android.os.Handler
 import android.os.Looper
 import android.text.format.DateFormat
@@ -25,6 +28,7 @@ import java.util.Date
  * The radar plays by itself once there are two frames, until someone pauses it or uses the slider.
  * A double tap on the map fills the screen, and another comes back: a tablet in a car makes a good
  * radio, and there the map should be big, the buttons easy to hit and the screen stay on.
+ * Each map has its date and time on the picture, so it can't be taken for a newer one.
  */
 class MapPanel @JvmOverloads constructor(
     context: Context,
@@ -45,6 +49,7 @@ class MapPanel @JvmOverloads constructor(
     private var seen = -1
     private var frame = 0
     private var frameShown: MapFeed.WeatherFrame? = null
+    private var trafficShown: Bitmap? = null
     private var playing = false
     private var autoPlay = true
     private var dialog: Dialog? = null
@@ -198,14 +203,19 @@ class MapPanel @JvmOverloads constructor(
         radarRow.visibility = View.GONE
         frameShown = null
         val map = MapFeed.traffic
-        image.setImageBitmap(map)
+        if (map !== trafficShown) {
+            trafficShown = map
+            image.setImageBitmap(map?.let { stamped(it.copy(Bitmap.Config.ARGB_8888, true), MapFeed.trafficTimeMs) })
+        }
         image.visibility = if (map == null) View.GONE else View.VISIBLE
-        note.text = if (map == null) context.getString(R.string.map_waiting_traffic)
-        else context.getString(R.string.map_updated, clock(MapFeed.trafficTimeMs))
+        note.visibility = if (map == null) View.VISIBLE else View.GONE
+        note.setText(R.string.map_waiting_traffic)
     }
 
     private fun showWeatherFrame() {
         val frames = MapFeed.frames
+        trafficShown = null
+        note.visibility = View.VISIBLE
         if (frames.isEmpty()) {
             frameShown = null
             image.setImageBitmap(null)
@@ -217,16 +227,38 @@ class MapPanel @JvmOverloads constructor(
         val current = frames[frame.coerceIn(0, frames.size - 1)]
         if (current !== frameShown) {
             frameShown = current
-            image.setImageBitmap(BitmapFactory.decodeByteArray(current.jpeg, 0, current.jpeg.size))
+            val options = BitmapFactory.Options().apply { inMutable = true }
+            val picture = BitmapFactory.decodeByteArray(current.jpeg, 0, current.jpeg.size, options)
+            image.setImageBitmap(picture?.let { stamped(it, current.timeMs) })
         }
         image.visibility = View.VISIBLE
         radarRow.visibility = if (frames.size > 1) View.VISIBLE else View.GONE
         slider.max = frames.size - 1
         slider.progress = frame
-        note.text = context.getString(R.string.map_radar_time, clock(current.timeMs), frame + 1, frames.size)
+        note.text = context.getString(R.string.map_radar_frame, frame + 1, frames.size)
     }
 
-    private fun clock(ms: Long) = DateFormat.getTimeFormat(context).format(Date(ms))
+    /**
+     * Writes the date and time in the top left corner of a map, in the phone's own time zone and
+     * 12 or 24 hour clock. Sized by the picture, so it grows with the map in full screen. On the
+     * picture as it's shown, not in the frames kept: those stay good if the settings change.
+     */
+    private fun stamped(map: Bitmap, ms: Long): Bitmap {
+        val date = Date(ms)
+        val text = DateFormat.getMediumDateFormat(context).format(date) + "  " +
+            DateFormat.getTimeFormat(context).format(date)
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+        paint.textSize = map.width / STAMP_PER_WIDTH
+        paint.isFakeBoldText = true
+        val pad = paint.textSize / 3
+        val canvas = Canvas(map)
+        val box = Paint()
+        box.color = STAMP_BACKGROUND
+        canvas.drawRect(0f, 0f, paint.measureText(text) + 2 * pad, paint.descent() - paint.ascent() + 2 * pad, box)
+        paint.color = android.graphics.Color.WHITE
+        canvas.drawText(text, pad, pad - paint.ascent(), paint)
+        return map
+    }
 
     override fun onDetachedFromWindow() {
         setPlaying(false)
@@ -242,5 +274,7 @@ class MapPanel @JvmOverloads constructor(
         const val PAUSE = "⏸"
         const val PLAY_STEP_MS = 600L
         const val PLAY_HOLD_MS = 1800L       // a rest on the newest picture before it starts over
+        const val STAMP_PER_WIDTH = 26f      // text height: a map's width over this
+        const val STAMP_BACKGROUND = -0x50000000    // black, about two thirds solid
     }
 }
