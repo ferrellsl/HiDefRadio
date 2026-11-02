@@ -84,7 +84,7 @@ Nothing is collected: no ads, no account, no tracking. Recordings (1.3) go only 
 
 ## What you need
 
-- An Android phone with **USB host (OTG)** support, 64-bit ARM (arm64-v8a), Android 8.0 or newer.
+- An Android device with **USB host (OTG)** support, Android 8.0 or newer. 64-bit ARM (arm64-v8a) is best; a 32-bit build (armeabi-v7a) is for older devices such as 32-bit car head units and old tablets.
 - An **RTL-SDR dongle**. Developed with the RTL-SDR Blog V4 (R828D tuner). The RTL-SDR Blog V3 and other R820T / R828D dongles use the same driver and should work on FM; a tester's 2014 Nooelec R820T does. A dongle without a temperature-compensated crystal (TCXO) is fine: the app corrects its clock error (see [How the blend works](#how-the-blend-works)).
 - A USB-OTG adapter or cable, and an antenna.
 - For HD Radio: a station that broadcasts it. HD Radio is on the air in the United States, Canada and Mexico. Elsewhere the app is an analog FM radio with RDS.
@@ -129,7 +129,7 @@ Good to know:
 
 - The debug build installs as a separate app, **HiDef Radio dev** (`io.github.derek20la.hidefradio.debug`), so it can sit next to a release install.
 - A release build is signed only if you put a `keystore.properties` file with your own key in the project's root folder. The four lines it needs are described at the top of `app/build.gradle.kts`. That file and the key are git-ignored. Without it everything still builds, and the release build is just not signed.
-- The native code is built for 64-bit ARM only (`abiFilters` in `app/build.gradle.kts`), as plain arm64-v8a baseline: no `-march`, nothing beyond what every 64-bit ARM phone has. The signal processing uses **NEON** (four floats per instruction, part of every arm64 phone): the FM demodulator through its own `vec4.hpp`, nrsc5 through its `HAVE_NEON` paths, and FFTW through its NEON codelets, which `CMakeLists.txt` adds by hand because FFTW's own CMake build doesn't know them. Everything also builds and runs without NEON (the PC harness) with the same arithmetic order, so results can be compared across machines.
+- The native code is built for 64-bit and 32-bit ARM (`abiFilters` in `app/build.gradle.kts`), as plain arm64-v8a and armeabi-v7a baselines: no `-march`, nothing beyond what every such device has. The signal processing uses **NEON** (four floats per instruction, part of every arm64 phone): the FM demodulator through its own `vec4.hpp`, nrsc5 through its `HAVE_NEON` paths, and FFTW through its NEON codelets, which `CMakeLists.txt` adds by hand because FFTW's own CMake build doesn't know them. Everything also builds and runs without NEON (the PC harness) with the same arithmetic order, so results can be compared across machines.
 
 ## How it works
 
@@ -183,7 +183,7 @@ FM stereo has a blend of its own: full stereo above 36 dB of quieting, mono belo
 - `iqsource.hpp` says what the radio needs from a sample source (tune, set the gain, deliver samples); `iqsource_usb.hpp` is the RTL-SDR dongle on the USB port, and the only file that calls librtlsdr. `iqsource_tcp.hpp` (1.2) is the other source: a dongle on another computer, over the network (rtl_tcp).
 - `iqrecord.hpp` (1.3) records the samples into a file, untouched, on a writer thread of its own (the IQ half of ⏺).
 - Next to it are nine self-contained C++17 headers with no Android code in them:
-  - `fmdemod.hpp`: the analog FM demodulator (stereo decoder, pilot PLL, quieting meter). `vec4.hpp` next to it is its four-floats-at-a-time layer: NEON on arm64, plain C++ anywhere else.
+  - `fmdemod.hpp`: the analog FM demodulator (stereo decoder, pilot PLL, quieting meter). `vec4.hpp` next to it is its four-floats-at-a-time layer: NEON on ARM, plain C++ anywhere else.
   - `amdemod.hpp`: the analog AM demodulator - carrier PLL, synchronous detector, carrier-to-noise meter, C-QUAM stereo. It reuses the FM file's filters.
   - `rds.hpp`: the RDS / RBDS decoder. It needs nothing but the FM multiplex signal.
   - `drift.hpp`: the clock correction. A small resampler, and the tracker that works out the dongle's clock error.
@@ -212,7 +212,6 @@ FM stereo has a blend of its own: full stereo above 36 dB of quieting, mono belo
 - In Auto, HD1 plays about 2.5 seconds behind Digital only. That delay is what makes the look-ahead possible.
 - Analog AM (1.1) has so far been proven on recordings of two stations (KMZT 1260, KBRT 740) in the desktop harness, not yet on the phone; the audio bandwidth is 5 kHz by default (Settings > AM audio bandwidth: 3, 5, 8 or 10 kHz). In Auto the sound on AM starts about 3 s after tuning, since the analog plays that far behind live there. The AM signal meter's bars (carrier-to-noise) still have first-guess thresholds. C-QUAM stereo is proven on a made-up signal only - no C-QUAM station is within reach of Los Angeles - so which channel is the left one has not been confirmed on the air. The clock correction does not run on AM (the envelope alignment is not fine enough to measure a crystal); with a non-TCXO dongle the blend re-aligns about every 40 s there.
 - AM HD has had little on-air testing: one station (KMZT 1260 kHz in Los Angeles) heard on the phone with an RTL-SDR Blog V4, plus off-air recordings run through the app's engine (`tools/harness`). AM with a V3 has not been tried yet.
-- 64-bit ARM phones only.
 - Most testing so far has been in the Los Angeles area. Testers have run it in other places and on other phones and dongles too, and more reports are what the closed test is for.
 
 ## Plans
