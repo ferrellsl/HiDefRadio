@@ -1,0 +1,20 @@
+#pragma once
+#define IDI_APP             1
+#define IDD_TUNE            100
+#define IDD_RENAME          101
+#define IDD_SETTINGS        102
+#define IDC_FREQ            1001
+#define IDC_NAME            1002
+#define IDC_DEVICE          1010
+#define IDC_GAIN            1011
+#define IDC_HDMODE          1012
+#define IDC_MISMATCH        1013
+#define IDC_STEREO          1014
+#define IDC_AMBW            1015
+#define IDC_AMDEEMPH        1016
+#define IDC_BLOCKED         1020
+#define IDC_CLEARBLOCKED    1021
+#define IDC_LOGOS           1022
+#define IDC_CLEARLOGOS      1023
+#define IDC_ABOUT           1030
+#define IDC_PROMPT          1040
