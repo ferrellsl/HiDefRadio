@@ -3,6 +3,8 @@
 // default output device; Windows converts it to the device's own rate.
 #pragma once
 #include <atomic>
+#include <functional>
+#include <mutex>
 #include <thread>
 
 class AudioPlayer {
@@ -15,9 +17,17 @@ public:
     std::atomic<bool> playing{false};       // pre-buffering done, sound going out
     std::atomic<int> underruns{0};
     std::atomic<long long> startedAtMs{0};  // GetTickCount64() when sound started, 0 = not yet
+    // The recording's tap: every chunk of the radio's audio (values = 2 per stereo frame) as it
+    // goes to the speaker, before the volume, paused or not. It must copy and return at once.
+    void setTap(std::function<void(const int16_t *, int)> tap) {
+        std::lock_guard<std::mutex> l(tapMutex_);
+        tap_ = std::move(tap);
+    }
     ~AudioPlayer() { stop(); }
 private:
     void loop();
     std::atomic<bool> running_{false};
     std::thread thread_;
+    std::mutex tapMutex_;
+    std::function<void(const int16_t *, int)> tap_;
 };

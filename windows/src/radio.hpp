@@ -15,6 +15,7 @@
 #include "audio.hpp"
 #include "gainkeeper.hpp"
 #include "mapfeed.hpp"
+#include "recorder.hpp"
 #include "signal.hpp"
 #include "store.hpp"
 
@@ -60,6 +61,12 @@ public:
     const GainKeeper *gainKeeper() const { return keeper_.get(); }
     MapFeed &maps() { return maps_; }
 
+    // Recording (the ⏺ button): "" = started, else why not.
+    std::string startRecording(const std::string &station);
+    void stopRecording() { recorder_.stop(); }
+    const Recorder &recorder() const { return recorder_; }
+    std::string takeRecordingMessage() { return recorder_.takeMessage(); }
+
 private:
     void post(std::function<void()> f);
     void engineLoop();
@@ -72,6 +79,7 @@ private:
 
     Settings &cfg_;
     AudioPlayer player_;
+    Recorder recorder_{player_};
     MapFeed maps_;
     std::unique_ptr<GainKeeper> keeper_;
 

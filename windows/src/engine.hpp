@@ -52,4 +52,11 @@ void measureAlignment();
 void setClockCorrection(bool on);
 void setHdRest(bool on);
 
+// IQ recording (iqrecord.hpp): the engine owns [fd] from here on and closes it.
+// 0 = recording, 1 = not streaming, 2 = one is going on, 3 = no memory.
+int startIqRecord(int fd, int maxSeconds);
+void stopIqRecord();                        // waits until the file is complete
+bool iqRecordState(long long &state, long long &written);   // state 0 idle, 1 recording, 2 ended
+bool takeIqRecord(long long &bytes, int &reason);           // false = nothing ended
+
 }  // namespace eng

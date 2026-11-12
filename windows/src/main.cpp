@@ -6,6 +6,7 @@
 #include <commctrl.h>
 #include <objbase.h>
 #include <d2d1.h>
+#include <shobjidl.h>
 #include <dwrite_3.h>
 #include <algorithm>
 #include <cmath>
@@ -18,6 +19,7 @@
 #include "engine.hpp"
 #include "imaging.hpp"
 #include "radio.hpp"
+#include "recorder.hpp"
 #include "rtl-sdr.h"
 extern "C" {
 #include "nrsc5.h"
@@ -30,6 +32,8 @@ extern "C" {
 extern "C" void hidef_log_open(const char *path);
 extern "C" int __android_log_print(int, const char *, const char *, ...);
 #define ULOG(...) __android_log_print(4, "Window", __VA_ARGS__)
+
+#define HIDEF_VERSION "1.0.1"
 
 namespace {
 
@@ -56,7 +60,7 @@ uint32_t signalColor(sigtext::Color c) {
 // ------------------------------------------------------------------ hit areas
 
 enum HitId {
-    H_NONE, H_TUNE_DOWN, H_TUNE_UP, H_VFD, H_PAUSE, H_POWER, H_SETTINGS, H_VOLUME, H_PROGRAM, H_PRESET,
+    H_NONE, H_TUNE_DOWN, H_TUNE_UP, H_VFD, H_PAUSE, H_POWER, H_RECORD, H_SETTINGS, H_VOLUME, H_PROGRAM, H_PRESET,
     H_STAR, H_SIGNAL, H_OTHER_HD, H_DETAILS_HEAD, H_TAB_TRAFFIC, H_TAB_WEATHER, H_MAP, H_PLAY, H_SLIDER,
     H_NOW_IMAGE, H_START, H_DETAILS
 };
@@ -119,6 +123,8 @@ struct App {
     float detailsScroll = 0, detailsMaxScroll = 0;
     D2D1_RECT_F detailsArea{};
     bool winFull = false;                  // F11: the whole screen, no frame (car use)
+    std::string toast;                     // a short message at the bottom ("Saved 3.2 MB: ...")
+    long long toastUntilMs = 0;
     WINDOWPLACEMENT prevPlacement{sizeof(WINDOWPLACEMENT)};
     long long lastSaveMs = 0;
 };
@@ -399,7 +405,24 @@ void drawTopBar(float W, int freqHz) {
     x += 64;
     D2D1_RECT_F sr = D2D1::RectF(x, top + 14, x + 56, top + bh - 14);
     button(sr, on ? "\xE2\x96\xA0" : "\xE2\x8F\xBB", H_POWER, 0, 22, C_SURFACE, on ? C_TEXT : C_GOOD);  // ■ ⏻
-    x += 76;
+    x += 64;
+    // ⏺ record: red while recording, with the time (and the IQ limit while only IQ records)
+    if (on) {
+        const Recorder &rec = app.radio->recorder();
+        bool recording = rec.recording();
+        D2D1_RECT_F rr = D2D1::RectF(x, top + 14, x + 56, top + bh - 14);
+        button(rr, "\xE2\x8F\xBA", H_RECORD, 0, 22, recording ? C_LOST : C_SURFACE, recording ? 0xFFFFFF : C_LOST);
+        x += 64;
+        if (recording) {
+            long long s = rec.elapsedMs() / 1000;
+            std::string t = fmt("%lld:%02lld", s / 60, s % 60);
+            if (rec.iqOnly() && rec.iqLimitS() > 0) t += " / " + recordings::limitText(rec.iqLimitS());
+            float tw = textWidth(t, format(16)) + 8;
+            text(t, D2D1::RectF(x, top, x + tw, top + bh), format(16), C_LOST, 1, LEFT, false, true);
+            x += tw;
+        }
+    }
+    x += 12;
     // volume
     float vw = std::min(180.0f, W - x - 90);
     if (vw > 60) {
@@ -767,6 +790,16 @@ void paint() {
         else if (running()) drawMaps(pane, head.right + 24, y);
         else text("The traffic and weather maps show here while the radio plays.", pane, format(16), C_DIM, 1, LEFT, true);
     }
+    // the toast: a message at the bottom for a few seconds
+    if (!app.toast.empty() && nowMs() < app.toastUntilMs) {
+        IDWriteTextFormat *tf = format(16);
+        float tw = std::min(W - 64, 900.0f);
+        float th = textHeight(app.toast, tf, tw - 32) + 24;
+        D2D1_RECT_F box = D2D1::RectF((W - tw) / 2, H - th - 24, (W + tw) / 2, H - 24);
+        fill(box, 0x2A2D2E, 0.97f, 12);
+        stroke(box, C_TILE_EDGE, 0.5f, 12, 1);
+        text(app.toast, D2D1::RectF(box.left + 16, box.top + 12, box.right - 16, box.bottom - 12), tf, C_TEXT, 1, LEFT, true);
+    }
     HRESULT hr = app.rt->EndDraw();
     if (hr == D2DERR_RECREATE_TARGET) discardDevice();
 }
@@ -823,6 +856,39 @@ void comboAdd(HWND dlg, int id, const std::string &s) { SendDlgItemMessageW(dlg,
 int comboGet(HWND dlg, int id) { return (int)SendDlgItemMessageW(dlg, id, CB_GETCURSEL, 0, 0); }
 void comboSet(HWND dlg, int id, int i) { SendDlgItemMessageW(dlg, id, CB_SETCURSEL, i, 0); }
 
+const int IQ_LIMITS[] = {30, 60, 120, 300, 900, 0};   // as on Android; 0 = no limit
+std::wstring g_recFolder;                              // the dialog's choice until OK
+
+std::wstring shownFolder() { return g_recFolder.empty() ? recordings::defaultFolder() : g_recFolder; }
+
+// Windows' own folder picker. "" = cancelled.
+std::wstring pickFolder(HWND owner, const std::wstring &start) {
+    std::wstring result;
+    IFileOpenDialog *d = nullptr;
+    if (FAILED(CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&d)))) return result;
+    DWORD opts = 0;
+    d->GetOptions(&opts);
+    d->SetOptions(opts | FOS_PICKFOLDERS | FOS_FORCEFILESYSTEM);
+    d->SetTitle(L"Where should recordings go?");
+    makeDirs(start);
+    IShellItem *folder = nullptr;
+    if (SUCCEEDED(SHCreateItemFromParsingName(start.c_str(), nullptr, IID_PPV_ARGS(&folder)))) {
+        d->SetFolder(folder);
+        folder->Release();
+    }
+    if (SUCCEEDED(d->Show(owner))) {
+        IShellItem *item = nullptr;
+        if (SUCCEEDED(d->GetResult(&item))) {
+            PWSTR p = nullptr;
+            if (SUCCEEDED(item->GetDisplayName(SIGDN_FILESYSPATH, &p))) result = p;
+            CoTaskMemFree(p);
+            item->Release();
+        }
+    }
+    d->Release();
+    return result;
+}
+
 void settingsCounts(HWND dlg) {
     SetDlgItemTextW(dlg, IDC_BLOCKED, widen(fmt("Blocked pictures: %d (right-click a picture to block it)", artblock::count())).c_str());
     int logos = (int)listFiles(localDir() + L"\\logos").size();
@@ -859,9 +925,19 @@ INT_PTR CALLBACK settingsProc(HWND dlg, UINT msg, WPARAM wp, LPARAM) {
         if (comboGet(dlg, IDC_AMBW) < 0) comboSet(dlg, IDC_AMBW, 1);
         CheckDlgButton(dlg, IDC_AMDEEMPH, app.cfg.amDeemphasis ? BST_CHECKED : BST_UNCHECKED);
         settingsCounts(dlg);
+        for (const char *t : {"Audio (.m4a, about 1 MB a minute)", "IQ samples (.cu8, about 180 MB a minute)", "Audio and IQ"})
+            comboAdd(dlg, IDC_RECWHAT, t);
+        comboSet(dlg, IDC_RECWHAT, app.cfg.recWhat);
+        for (int i = 0; i < 6; i++) {
+            comboAdd(dlg, IDC_RECLIMIT, IQ_LIMITS[i] ? recordings::limitText(IQ_LIMITS[i]) : std::string("No limit"));
+            if (IQ_LIMITS[i] == app.cfg.recIqLimitS) comboSet(dlg, IDC_RECLIMIT, i);
+        }
+        if (comboGet(dlg, IDC_RECLIMIT) < 0) comboSet(dlg, IDC_RECLIMIT, 1);
+        g_recFolder = app.cfg.recFolder;
+        SetDlgItemTextW(dlg, IDC_RECFOLDER, shownFolder().c_str());
         const char *ver = "";
         nrsc5_get_version(&ver);
-        std::string about = "HiDef Radio for Windows 1.0, from HiDef Radio by derek20la (Android) and its Maps fork. "
+        std::string about = "HiDef Radio for Windows " HIDEF_VERSION ", from HiDef Radio by derek20la (Android) and its Maps fork. "
                             "nrsc5 " + std::string(ver) + ", FAAD2, FFTW, librtlsdr (RTL-SDR Blog), libusb. GPL-3.0. "
                             "Maps \xC2\xA9 OpenStreetMap contributors (CC BY-SA). " + stations::info() + ".";
         SetDlgItemTextW(dlg, IDC_ABOUT, widen(about).c_str());
@@ -875,6 +951,14 @@ INT_PTR CALLBACK settingsProc(HWND dlg, UINT msg, WPARAM wp, LPARAM) {
                 settingsCounts(dlg);
             }
             return TRUE;
+        case IDC_RECBROWSE: {
+            std::wstring f = pickFolder(dlg, shownFolder());
+            if (!f.empty()) {
+                g_recFolder = f;
+                SetDlgItemTextW(dlg, IDC_RECFOLDER, f.c_str());
+            }
+            return TRUE;
+        }
         case IDC_CLEARLOGOS:
             if (MessageBoxW(dlg, L"Delete the saved station logos? Stations send them again.", L"Clear saved logos", MB_YESNO | MB_ICONQUESTION) == IDYES) {
                 logocache::clear();
@@ -892,6 +976,9 @@ INT_PTR CALLBACK settingsProc(HWND dlg, UINT msg, WPARAM wp, LPARAM) {
             const int bws[] = {2500, 5000, 7500, 10000};
             app.cfg.amBandwidthHz = bws[std::min(std::max(comboGet(dlg, IDC_AMBW), 0), 3)];
             app.cfg.amDeemphasis = IsDlgButtonChecked(dlg, IDC_AMDEEMPH) == BST_CHECKED;
+            app.cfg.recWhat = std::max(comboGet(dlg, IDC_RECWHAT), 0);
+            app.cfg.recIqLimitS = IQ_LIMITS[std::min(std::max(comboGet(dlg, IDC_RECLIMIT), 0), 5)];
+            app.cfg.recFolder = g_recFolder;
             app.cfg.save();
             if (running()) {
                 if (old.device != app.cfg.device) {
@@ -986,6 +1073,30 @@ void artMenu(POINT screen) {
     }
 }
 
+void showToast(const std::string &text, long long ms = 7000) {
+    app.toast = text;
+    app.toastUntilMs = nowMs() + ms;
+}
+
+void toggleRecording() {
+    if (!running()) return;
+    if (app.radio->recorder().recording()) {
+        app.radio->stopRecording();
+        return;
+    }
+    std::string problem = app.radio->startRecording(stationName(app.radio->freqHz()));
+    if (!problem.empty()) { showToast(problem); return; }
+    const Recorder &r = app.radio->recorder();
+    std::string lim = recordings::limitText(app.cfg.recIqLimitS);
+    if (app.cfg.recWhat == Recorder::AUDIO) showToast("âº Recording audio", 3000);
+    else if (app.cfg.recWhat == Recorder::IQ)
+        showToast(app.cfg.recIqLimitS ? "âº Recording IQ - stops after " + lim
+                                      : std::string("âº Recording IQ - no limit, about 180 MB a minute"), 4000);
+    else showToast(app.cfg.recIqLimitS ? "âº Recording audio and IQ (IQ stops after " + lim + ")"
+                                       : std::string("âº Recording audio and IQ"), 4000);
+    (void)r;
+}
+
 void setRadarPlaying(bool on) {
     app.radarPlaying = on;
     app.radarNextMs = nowMs() + 600;
@@ -1046,6 +1157,7 @@ void click(const Hit &h, float x, float y) {
         else app.radio->start();
         app.picturesKey.clear();
         break;
+    case H_RECORD: toggleRecording(); break;
     case H_SETTINGS: DialogBoxW(GetModuleHandleW(nullptr), MAKEINTRESOURCEW(IDD_SETTINGS), app.hwnd, settingsProc); break;
     case H_VOLUME: setVolumeFromX(x, h.r); break;
     case H_PROGRAM:
@@ -1086,7 +1198,11 @@ void click(const Hit &h, float x, float y) {
 
 // Five times a second: the radio's timers, what the screen shows, the radar loop.
 void onTick() {
-    if (app.radio) app.radio->tick();
+    if (app.radio) {
+        app.radio->tick();
+        std::string m = app.radio->takeRecordingMessage();   // "Saved 3.2 MB: ..."
+        if (!m.empty()) showToast(m, 10000);
+    }
     if (running()) {
         app.shown = app.radio->signal();
         if (!app.radio->retuning()) {
@@ -1255,6 +1371,7 @@ LRESULT CALLBACK wndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         case VK_F11: toggleWindowFull(); break;
         case 'D': app.cfg.detailsOpen = !app.cfg.detailsOpen; break;
         case 'F': toggleFavorite(); break;
+        case 'R': toggleRecording(); break;
         case 'T': {
             INT_PTR hz = DialogBoxW(GetModuleHandleW(nullptr), MAKEINTRESOURCEW(IDD_TUNE), hwnd, tuneProc);
             if (hz > 0) tuneTo((int)hz);

@@ -18,3 +18,7 @@
 #define IDC_CLEARLOGOS      1023
 #define IDC_ABOUT           1030
 #define IDC_PROMPT          1040
+#define IDC_RECWHAT         1050
+#define IDC_RECLIMIT        1051
+#define IDC_RECFOLDER       1052
+#define IDC_RECBROWSE       1053

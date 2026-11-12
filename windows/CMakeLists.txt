@@ -67,10 +67,10 @@ target_link_libraries(engine PUBLIC nrsc5 rtlsdr usb-1.0 fftw3f faad_hdc ws2_32)
 
 # ---- the Windows app ----
 add_library(core STATIC src/engine.cpp src/audio.cpp src/util.cpp src/signal.cpp src/stations.cpp
-    src/store.cpp src/imaging.cpp src/mapfeed.cpp src/radio.cpp)
+    src/store.cpp src/imaging.cpp src/mapfeed.cpp src/radio.cpp src/recorder.cpp)
 set_target_properties(core PROPERTIES CXX_STANDARD 17)
 target_compile_definitions(core PUBLIC _WIN32_WINNT=0x0A00 UNICODE _UNICODE WIN32_LEAN_AND_MEAN NOMINMAX _USE_MATH_DEFINES)
-target_link_libraries(core PUBLIC engine ole32 oleaut32 avrt windowscodecs shlwapi bcrypt uuid)
+target_link_libraries(core PUBLIC engine ole32 oleaut32 avrt windowscodecs shlwapi bcrypt uuid mfplat mfreadwrite mfuuid)
 
 add_executable(HiDefRadio WIN32 src/main.cpp src/sigtext.cpp res/app.rc)
 set_target_properties(HiDefRadio PROPERTIES CXX_STANDARD 17)

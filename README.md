@@ -12,7 +12,7 @@ Stations with the Total Traffic Network or HERE data services send these maps. E
 
 **32-bit build:** the Releases page also has a `-32bit` APK, for older devices such as 32-bit car head units and old tablets.
 
-**Windows version:** HiDef Radio also runs on Windows 10 and 11 with the same RTL-SDR dongle: HD Radio and analog FM/AM, album art and logos, the traffic and weather maps with their time stamps, ad image blocking, favorites and the signal details. Get the installer or the zip from the [Releases](https://github.com/ferrellsl/HiDefRadio/releases) page. The dongle needs the WinUSB driver, which [Zadig](https://zadig.akeo.ie) installs. It uses the Android app's own radio engine, built for Windows; see [windows/README.md](windows/README.md).
+**Windows version:** HiDef Radio also runs on Windows 10 and 11 with the same RTL-SDR dongle: HD Radio and analog FM/AM, album art and logos, the traffic and weather maps with their time stamps, ad image blocking, recording (audio and IQ), favorites and the signal details. Get the installer or the zip from the [Releases](https://github.com/ferrellsl/HiDefRadio/releases) page. The dongle needs the WinUSB driver, which [Zadig](https://zadig.akeo.ie) installs. It uses the Android app's own radio engine, built for Windows; see [windows/README.md](windows/README.md).
 
 ---
 

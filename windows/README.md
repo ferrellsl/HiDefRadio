@@ -21,9 +21,15 @@ image blocking and a signal-details pane.
   hide them. When they are hidden, the maps take their place.
 - Favorites: click the star next to the station name. Right-click a favorite to move,
   rename or delete it.
+- Recording: click ⏺ (or press R) to record, and again to stop. Settings chooses what it
+  records: the audio you hear (AAC in .m4a, about 1 MB a minute), the raw IQ samples (.cu8,
+  8-bit I/Q at 1,488,375 samples a second, about 180 MB a minute, which nrsc5 plays back with
+  `-r` and most SDR programs open), or both. IQ stops by itself after the limit you set
+  (60 s unless you choose otherwise). Changing station or stopping the radio also ends a
+  recording and saves it. Files go to Music\HiDef Radio unless you pick another folder.
 
 Keys: Left/Right step the frequency; T types one; 1-8 pick HD1-HD8; Space pauses;
-F adds or removes a favorite; D shows or hides the details; F11 fills the screen.
+R records; F adds or removes a favorite; D shows or hides the details; F11 fills the screen.
 The mouse wheel over the frequency display tunes.
 
 ## Hardware
@@ -47,7 +53,7 @@ the Kotlin app (RadioService, MapFeed, ArtBlock, LogoCache, GainKeeper, Stations
 Build with MSYS2's MinGW-w64 gcc, CMake and Ninja (nrsc5 uses C99 complex numbers, which
 MSVC can't compile). From this `windows` folder:
 
-    powershell -ExecutionPolicy Bypass -File package.ps1 -Version 1.0.0
+    powershell -ExecutionPolicy Bypass -File package.ps1 -Version 1.0.1
 
 That builds `build\HiDefRadio.exe` (one static exe, no DLLs) and its `data` folder (the FCC
 station list, the base map, the DSEG7 font and the licenses, copied from the Android app),

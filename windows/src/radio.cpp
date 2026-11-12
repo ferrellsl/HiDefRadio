@@ -123,6 +123,7 @@ bool Radio::start() {
 
 void Radio::stop() {
     if (!radioOn_) return;
+    recorder_.stop();                             // a recording is one station - saved now
     radioOn_ = false;
     retuneSeq_++;
     wantedProgram_ = -1;
@@ -166,6 +167,7 @@ void Radio::startStream(int hz) {
 }
 
 void Radio::restartStream(int program) {
+    recorder_.stop();                             // a recording is one station - saved now
     int seq = ++retuneSeq_;
     int hz = freqHz_;
     retuning_ = true;
@@ -281,6 +283,7 @@ void Radio::tick() {
     if (now >= nextGainMs_) {
         nextGainMs_ = now + 1000;
         watchGain();
+        recorder_.tick();
     }
     if (now >= nextAlignMs_) {
         nextAlignMs_ = now + 2000;
@@ -376,6 +379,12 @@ std::string Radio::art(int program) const {
     if (!a.empty() && artblock::isBlocked(a)) return {};
     return a;
 }
+std::string Radio::startRecording(const std::string &station) {
+    if (!radioOn_ || retuning_ || !eng::isStreaming()) return "Recording starts once the station is playing.";
+    std::wstring folder = cfg_.recFolder.empty() ? recordings::defaultFolder() : cfg_.recFolder;
+    return recorder_.start(cfg_.recWhat, folder, cfg_.recIqLimitS, freqHz_, station, currentProgram());
+}
+
 long long Radio::soundMs() const {
     long long started = player_.startedAtMs;
     return !retuning_ && started > 0 && started >= tuneStartMs_ ? started - tuneStartMs_ : -1;

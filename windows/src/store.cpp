@@ -19,8 +19,8 @@ static int iniInt(const wchar_t *sec, const wchar_t *key, int def) {
     return (int)GetPrivateProfileIntW(sec, key, def, iniPath().c_str());
 }
 static std::string iniStr(const wchar_t *sec, const wchar_t *key) {
-    wchar_t buf[512];
-    GetPrivateProfileStringW(sec, key, L"", buf, 512, iniPath().c_str());
+    wchar_t buf[1024];
+    GetPrivateProfileStringW(sec, key, L"", buf, 1024, iniPath().c_str());
     return narrow(buf);
 }
 
@@ -37,6 +37,9 @@ void Settings::load() {
     amDeemphasis = iniInt(S, L"AmDeemphasis", 1) != 0;
     volume = std::min(std::max(iniInt(S, L"Volume", 100), 0), 100);
     device = std::max(iniInt(S, L"Device", 0), 0);
+    recWhat = std::min(std::max(iniInt(S, L"RecordWhat", 0), 0), 2);
+    recIqLimitS = std::max(iniInt(S, L"RecordIqLimit", 60), 0);
+    recFolder = widen(iniStr(S, L"RecordFolder"));
     const wchar_t *W = L"Window";
     detailsOpen = iniInt(W, L"DetailsOpen", 0) != 0;
     mapTab = iniInt(W, L"MapTab", 0) == 1 ? 1 : 0;
@@ -76,6 +79,9 @@ void Settings::save() const {
     num(S, L"AmDeemphasis", amDeemphasis);
     num(S, L"Volume", volume);
     num(S, L"Device", device);
+    num(S, L"RecordWhat", recWhat);
+    num(S, L"RecordIqLimit", recIqLimitS);
+    put(S, L"RecordFolder", narrow(recFolder));
     const wchar_t *W = L"Window";
     num(W, L"DetailsOpen", detailsOpen);
     num(W, L"MapTab", mapTab);

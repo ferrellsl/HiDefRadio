@@ -25,6 +25,9 @@ struct Settings {
     int mapTab = 0;                   // 0 traffic, 1 weather
     bool radarAutoPlay = true;        // the radar loop plays by itself
     int device = 0;                   // which RTL-SDR (index)
+    int recWhat = 0;                  // ⏺ records: 0 audio, 1 IQ, 2 both
+    int recIqLimitS = 60;             // IQ stops after this many seconds; 0 = no limit
+    std::wstring recFolder;           // "" = Music\HiDef Radio
     int winX = -1, winY = -1, winW = 1280, winH = 800;
     bool winMax = false;
     std::vector<Preset> presets;

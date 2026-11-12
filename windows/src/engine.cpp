@@ -92,4 +92,23 @@ void measureAlignment() { J(measureAlignmentNative)(&env, nullptr); }
 void setClockCorrection(bool on) { J(setClockCorrectionNative)(&env, nullptr, on); }
 void setHdRest(bool on) { J(setHdRestNative)(&env, nullptr, on); }
 
+int startIqRecord(int fd, int maxSeconds) { return J(startIqRecordNative)(&env, nullptr, fd, maxSeconds); }
+void stopIqRecord() { J(stopIqRecordNative)(&env, nullptr); }
+bool iqRecordState(long long &state, long long &written) {
+    jlongArray a = J(getIqRecordNative)(&env, nullptr);
+    if (!a) return false;
+    state = a->data()[0];
+    written = a->data()[1];
+    jni_free(a);
+    return true;
+}
+bool takeIqRecord(long long &bytes, int &reason) {
+    jlongArray a = J(takeIqRecordNative)(&env, nullptr);
+    if (!a) return false;
+    bytes = a->data()[0];
+    reason = (int)a->data()[1];
+    jni_free(a);
+    return true;
+}
+
 }  // namespace eng

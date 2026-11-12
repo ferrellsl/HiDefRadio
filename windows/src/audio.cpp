@@ -91,6 +91,10 @@ void AudioPlayer::loop() {
             underruns++;
             continue;          // the device plays silence by itself when it runs dry
         }
+        {
+            std::lock_guard<std::mutex> l(tapMutex_);
+            if (tap_) tap_(chunk.data(), n);
+        }
         UINT32 frames = (UINT32)n / 2;
         BYTE *out = nullptr;
         if (FAILED(render->GetBuffer(frames, &out))) { ok = open(); continue; }
