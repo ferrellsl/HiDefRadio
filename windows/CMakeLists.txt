@@ -27,11 +27,12 @@ target_include_directories(rtlsdr PUBLIC ${EXT}/rtl-sdr-blog/include)
 target_compile_definitions(rtlsdr PUBLIC rtlsdr_STATIC)
 target_link_libraries(rtlsdr PUBLIC usb-1.0)
 
-# ---- FFTW 3.3.10 single precision, SSE2/AVX/AVX2 codelets (picked at run time) ----
+# ---- FFTW 3.3.10 single precision, SSE2 codelets (every x64 CPU has SSE2) ----
 set(ENABLE_FLOAT ON CACHE BOOL "" FORCE)
 set(ENABLE_SSE2 ON CACHE BOOL "" FORCE)
-set(ENABLE_AVX ON CACHE BOOL "" FORCE)
-set(ENABLE_AVX2 ON CACHE BOOL "" FORCE)
+set(ENABLE_AVX OFF CACHE BOOL "" FORCE)    # FFTW's CMake puts -mavx on the WHOLE library (not just its AVX codelets),
+                                            # so the planner itself used AVX and crashed on CPUs without it (Atom, Celeron)
+set(ENABLE_AVX2 OFF CACHE BOOL "" FORCE)
 
 set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)

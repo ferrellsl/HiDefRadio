@@ -33,7 +33,7 @@ extern "C" void hidef_log_open(const char *path);
 extern "C" int __android_log_print(int, const char *, const char *, ...);
 #define ULOG(...) __android_log_print(4, "Window", __VA_ARGS__)
 
-#define HIDEF_VERSION "1.0.1"
+#define HIDEF_VERSION "1.0.2"
 
 namespace {
 

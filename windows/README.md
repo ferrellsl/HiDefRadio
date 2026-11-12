@@ -53,7 +53,7 @@ the Kotlin app (RadioService, MapFeed, ArtBlock, LogoCache, GainKeeper, Stations
 Build with MSYS2's MinGW-w64 gcc, CMake and Ninja (nrsc5 uses C99 complex numbers, which
 MSVC can't compile). From this `windows` folder:
 
-    powershell -ExecutionPolicy Bypass -File package.ps1 -Version 1.0.1
+    powershell -ExecutionPolicy Bypass -File package.ps1 -Version 1.0.2
 
 That builds `build\HiDefRadio.exe` (one static exe, no DLLs) and its `data` folder (the FCC
 station list, the base map, the DSEG7 font and the licenses, copied from the Android app),
