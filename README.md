@@ -1,6 +1,8 @@
 # HiDef Radio
 
 > **This fork adds traffic and weather maps and ad image blocking** to [HiDef Radio by derek20la](https://github.com/derek20la/HiDefRadio). The maps are received over the air, with no internet. Download **HiDef Radio Maps** from the [Releases](https://github.com/ferrellsl/HiDefRadio/releases) page. It installs alongside the original app.
+>
+> **This fork is actively maintained.** Report problems under [Issues](https://github.com/ferrellsl/HiDefRadio/issues), and ask questions or share what you receive in [Discussions](https://github.com/ferrellsl/HiDefRadio/discussions).
 
 | Traffic | Weather radar |
 |---|---|
