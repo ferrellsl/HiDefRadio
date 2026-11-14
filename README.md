@@ -14,6 +14,15 @@ Stations with the Total Traffic Network or HERE data services send these maps. E
 
 **32-bit build:** the Releases page also has a `-32bit` APK, for older devices such as 32-bit car head units and old tablets.
 
+**Android Auto:** HiDef Radio Maps shows up in Android Auto's launcher, which gives HD Radio to a car that doesn't have it. The car's screen shows the album art and station logos, the song title and artist, play/pause, ⏮ ⏭ for your favorites, Stop, and an **HD** button that steps through HD1, HD2 and so on while the station has more than one. Your favorites are listed as tiles to tap and tune, and "Hey Google, play 95.5 HD2 on HiDef Radio Maps" tunes by voice. The traffic and weather maps stay on the phone, since Android Auto doesn't allow pictures like them. The dongle needs the phone's USB port, so use wireless Android Auto, or a USB hub that connects the phone, the dongle and the car (one from Anker works).
+To set it up (once, on the phone):
+
+1. **Allow apps from outside the Play Store.** Open Android Auto's settings (Settings → Connected devices → Connection preferences → Android Auto, or search Settings for "Android Auto"). Scroll to the bottom and tap **Version** ten times, then say OK to turn on developer settings. Open the ⋮ menu at the top right, tap **Developer settings**, and turn on **Unknown sources**. Without this, Android Auto hides apps that weren't installed from the Play Store.
+2. **Put the app on the car's screen.** Back in Android Auto's settings, tap **Customize launcher** and tick **HiDef Radio Maps** (drag it up the list to put it near the front).
+3. **Allow the dongle.** Plug in the dongle and start the radio on the phone once, so Android remembers the USB permission. If the car's ▶ doesn't start the radio later, start it on the phone.
+
+Then connect to the car and pick HiDef Radio Maps from the Android Auto launcher.
+
 **Windows version:** HiDef Radio also runs on Windows 10 and 11 with the same RTL-SDR dongle: HD Radio and analog FM/AM, album art and logos, the traffic and weather maps with their time stamps, ad image blocking, recording (audio and IQ), favorites and the signal details. Get the installer or the zip from the [Releases](https://github.com/ferrellsl/HiDefRadio/releases) page. The dongle needs the WinUSB driver, which [Zadig](https://zadig.akeo.ie) installs. It uses the Android app's own radio engine, built for Windows; see [windows/README.md](windows/README.md).
 
 ---
@@ -62,6 +71,7 @@ No root, no computer, no internet connection needed (a dongle on another compute
 - **Recording** (since 1.3): tap ⏺ to record what you hear as an AAC file (.aac, about 1 MB a minute), the raw IQ samples from the tuner (.cu8), or both. You pick the folder once. IQ files grow fast (about 180 MB a minute), so an IQ recording stops by itself after 60 seconds unless you choose a longer limit in Settings → Recording. A new station or stopping the radio ends a recording and saves it.
 - On a tablet the screen splits in two: the radio on the left, the signal details always open on the right.
 - Plays in the background with the screen off.
+- **Android Auto** (fork, 1.3.1-maps6): the app in the car's launcher, with your favorites as tiles, the album art, an HD button and voice tuning.
 - Media controls in the notification, on the lock screen, and from headsets, Bluetooth and car radios. ⏮ ⏭ jump between favorites. Pause keeps the tuner running, so playback resumes live right away. The radio stops by itself after a pause (5 minutes by default) and pauses when you unplug headphones.
 - You choose what happens when another app plays sound: mute and resume, stop, or play along.
 - Light, dark gray and true black themes. The screen can turn with the phone, or stay in portrait or landscape (handy in a car mount).
