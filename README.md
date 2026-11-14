@@ -15,6 +15,7 @@ Stations with the Total Traffic Network or HERE data services send these maps. E
 **32-bit build:** the Releases page also has a `-32bit` APK, for older devices such as 32-bit car head units and old tablets.
 
 **Android Auto:** HiDef Radio shows up in Android Auto's launcher, which gives HD Radio to a car that doesn't have it. The car's screen shows the album art and station logos, the song title and artist, play/pause, ⏮ ⏭ for your favorites, Stop, and an **HD** button that steps through HD1, HD2 and so on while the station has more than one. Your favorites are listed as tiles to tap and tune, and "Hey Google, play 95.5 HD2 on HiDef Radio Maps" tunes by voice. The traffic and weather maps stay on the phone, since Android Auto doesn't allow pictures like them. The dongle needs the phone's USB port, so use wireless Android Auto, or a USB hub that connects the phone, the dongle and the car (one from Anker works).
+
 To set it up (once, on the phone):
 
 1. **Allow apps from outside the Play Store.** Open Android Auto's settings (Settings → Connected devices → Connection preferences → Android Auto, or search Settings for "Android Auto"). Scroll to the bottom and tap **Version** ten times, then say OK to turn on developer settings. Open the ⋮ menu at the top right, tap **Developer settings**, and turn on **Unknown sources**. Without this, Android Auto hides apps that weren't installed from the Play Store.
