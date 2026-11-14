@@ -63,11 +63,21 @@
             android:label="@string/settings"
             android:parentActivityName=".MainActivity" />
 
-        <!-- Milestone 8: the radio engine runs here, even with the screen off -->
+        <!-- Milestone 8: the radio engine runs here, even with the screen off.
+             Exported for Android Auto, which binds to it as a media browser (the presets list). -->
         <service
             android:name=".RadioService"
-            android:exported="false"
-            android:foregroundServiceType="mediaPlayback" />
+            android:exported="true"
+            android:foregroundServiceType="mediaPlayback">
+            <intent-filter>
+                <action android:name="android.media.browse.MediaBrowserService" />
+            </intent-filter>
+        </service>
+
+        <!-- Android Auto: list this app in the car's launcher, as a media app -->
+        <meta-data
+            android:name="com.google.android.gms.car.application"
+            android:resource="@xml/automotive_app_desc" />
     </application>
 
 </manifest>

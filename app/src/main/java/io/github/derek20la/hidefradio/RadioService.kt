@@ -18,7 +18,10 @@ import android.graphics.drawable.Icon
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager
+import android.media.MediaDescription
 import android.media.MediaMetadata
+import android.media.browse.MediaBrowser
+import android.service.media.MediaBrowserService
 import android.media.session.MediaSession
 import android.media.session.PlaybackState
 import android.hardware.usb.UsbDevice
@@ -81,7 +84,7 @@ import java.util.concurrent.atomic.AtomicInteger
  * while you listen (by the peak level, and by trying neighbouring steps' MER), and the gain that worked is remembered per frequency
  * (GainMemory), so the next tune can skip the search.
  */
-class RadioService : Service() {
+class RadioService : MediaBrowserService() {
 
     private lateinit var usbManager: UsbManager
     private var connection: UsbDeviceConnection? = null   // kept open while playing
@@ -191,6 +194,9 @@ class RadioService : Service() {
         audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
         createNotificationChannel()
         createSession()                                                   // M10a
+        sessionToken = session.sessionToken                               // Android Auto
+        getSharedPreferences("presets", Context.MODE_PRIVATE)
+            .registerOnSharedPreferenceChangeListener(presetsListener)
         ContextCompat.registerReceiver(
             this, detachReceiver,
             IntentFilter(UsbManager.ACTION_USB_DEVICE_DETACHED),
@@ -250,6 +256,8 @@ class RadioService : Service() {
         handler.removeCallbacks(usbWaiter)
         unregisterReceiver(noisyReceiver)
         Settings.prefs(this).unregisterOnSharedPreferenceChangeListener(settingsListener)
+        getSharedPreferences("presets", Context.MODE_PRIVATE)
+            .unregisterOnSharedPreferenceChangeListener(presetsListener)
         session.release()                                                 // M10a
         engine.shutdown()                                                 // M10b
         instance = null
@@ -257,7 +265,9 @@ class RadioService : Service() {
     }
 
     // We don't use "binding"; MainActivity reads status via RadioService.instance.
-    override fun onBind(intent: Intent?): IBinder? = null
+    // Android Auto does: it binds as a media browser to list the presets (see onLoadChildren).
+    override fun onBind(intent: Intent?): IBinder? =
+        if (intent?.action == SERVICE_INTERFACE) super.onBind(intent) else null
 
     // ------------------------------------------------------------------ radio
 
@@ -1274,13 +1284,23 @@ class RadioService : Service() {
         session.setSessionActivity(openAppIntent())
         // All callbacks run on the main thread (our handler), like the rest of this class.
         session.setCallback(object : MediaSession.Callback() {
-            override fun onPlay() = play()
+            override fun onPlay() = if (radioOn) play() else startFromCar()
             override fun onPause() = pause()
             override fun onStop() = stopEverything()
             override fun onSkipToNext() = skipPreset(forward = true)
             override fun onSkipToPrevious() = skipPreset(forward = false)
             override fun onCustomAction(action: String, extras: Bundle?) {
                 if (action == CUSTOM_ACTION_STOP) stopEverything()   // the ⏹ button (Android 13+)
+                if (action == CUSTOM_ACTION_NEXT_HD) nextHdProgram()  // Android Auto's HD button
+            }
+            // Android Auto: a preset tapped in the car's list, or "Hey Google, play 95.5 on HiDef Radio"
+            override fun onPlayFromMediaId(mediaId: String, extras: Bundle?) {
+                CarBrowse.parseId(mediaId)?.let { (hz, program) -> tuneFromCar(hz, program) }
+            }
+            override fun onPlayFromSearch(query: String?, extras: Bundle?) {
+                val found = CarBrowse.parseSearch(query.orEmpty(), Presets.load(this@RadioService))
+                if (found != null) tuneFromCar(found.first, found.second)
+                else if (!radioOn) startFromCar() else play()
             }
 
             // 9j: the "Physical media buttons" setting. Hardware keys - headset,
@@ -1473,14 +1493,86 @@ class RadioService : Service() {
         val state = PlaybackState.Builder()
             .setActions(PlaybackState.ACTION_PLAY or PlaybackState.ACTION_PAUSE or
                         PlaybackState.ACTION_PLAY_PAUSE or PlaybackState.ACTION_STOP or
-                        PlaybackState.ACTION_SKIP_TO_NEXT or PlaybackState.ACTION_SKIP_TO_PREVIOUS)
+                        PlaybackState.ACTION_SKIP_TO_NEXT or PlaybackState.ACTION_SKIP_TO_PREVIOUS or
+                        PlaybackState.ACTION_PLAY_FROM_MEDIA_ID or PlaybackState.ACTION_PLAY_FROM_SEARCH)
             .setState(if (playing) PlaybackState.STATE_PLAYING else PlaybackState.STATE_PAUSED,
                       PlaybackState.PLAYBACK_POSITION_UNKNOWN, if (playing) 1f else 0f)
             // Android 13+ doesn't show a Stop button by itself - a "custom action" does.
             .addCustomAction(PlaybackState.CustomAction.Builder(
                 CUSTOM_ACTION_STOP, getString(R.string.stop), R.drawable.ic_stop).build())
-            .build()
-        session.setPlaybackState(state)
+        // Android Auto: HD1 -> HD2 -> ... while the station has more than one program
+        if (radioOn && programs().size > 1)
+            state.addCustomAction(PlaybackState.CustomAction.Builder(
+                CUSTOM_ACTION_NEXT_HD, getString(R.string.car_next_hd), R.drawable.ic_hd_next).build())
+        session.setPlaybackState(state.build())
+    }
+
+    // ------------------------------------------------------------------ Android Auto
+
+    /** Android Auto asks what to list: one folder, the root, holding your presets. */
+    override fun onGetRoot(clientPackageName: String, clientUid: Int, rootHints: Bundle?): BrowserRoot =
+        BrowserRoot(CarBrowse.ROOT, null)
+
+    override fun onLoadChildren(parentId: String, result: Result<MutableList<MediaBrowser.MediaItem>>) {
+        if (parentId != CarBrowse.ROOT) { result.sendResult(mutableListOf()); return }
+        val items = Presets.load(this).map { p ->
+            val logo = LogoCache.load(this, p.freqHz, p.program)
+                ?.let { BitmapFactory.decodeByteArray(it, 0, it.size) }
+            val description = MediaDescription.Builder()
+                .setMediaId(CarBrowse.presetId(p.freqHz, p.program))
+                .setTitle(p.title.ifEmpty { p.freqText })
+                .setSubtitle(p.freqText)
+                .setIconBitmap(logo?.let { Bitmap.createScaledBitmap(it, CAR_ICON, CAR_ICON * it.height / it.width.coerceAtLeast(1), true) })
+                .build()
+            MediaBrowser.MediaItem(description, MediaBrowser.MediaItem.FLAG_PLAYABLE)
+        }
+        result.sendResult(items.toMutableList())
+    }
+
+    /** The car's list follows your presets (added, renamed, dragged on the phone). */
+    private val presetsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, _ ->
+        notifyChildrenChanged(CarBrowse.ROOT)
+    }
+
+    /** A preset from the car: tune it, starting the radio first if it's off. */
+    private fun tuneFromCar(hz: Int, program: Int) {
+        tune(hz, program)               // (radio off: just saved, and the start below plays it)
+        if (!radioOn) startFromCar()
+        else updateNotification()
+    }
+
+    /**
+     * ▶ in the car with the radio off: start it as the app's own button would - the dongle on the
+     * phone if Android lets us use it already, else Settings > Source's rtl_tcp server. Asking for
+     * USB permission needs the phone's screen, so without it nothing starts (the app shows why).
+     */
+    private fun startFromCar() {
+        if (radioOn || tcpConnecting) return
+        val dongle = usbManager.deviceList.values.firstOrNull { Dongles.isSupported(this, it) }
+        val intent = Intent(this, RadioService::class.java).setAction(ACTION_START)
+        when {
+            dongle != null && usbManager.hasPermission(dongle) -> intent.putExtra(EXTRA_DEVICE, dongle)
+            dongle == null && Settings.useTcp(this) && Settings.tcpHost(this).isNotEmpty() ->
+                intent.putExtra(EXTRA_TCP_HOST, Settings.tcpHost(this))
+                    .putExtra(EXTRA_TCP_PORT, Settings.tcpPort(this))
+            else -> {
+                Log.i(TAG, "Car: no dongle we may use (permission is asked on the phone)")
+                return
+            }
+        }
+        try {
+            ContextCompat.startForegroundService(this, intent)
+        } catch (e: IllegalStateException) {
+            // Android 12+ may refuse to start a foreground service from the background
+            Log.w(TAG, "Car: couldn't start the radio: $e")
+        }
+    }
+
+    /** The HD button in the car: the station's next program (HD1 -> HD2 -> ... -> HD1). */
+    private fun nextHdProgram() {
+        if (!radioOn) return
+        val next = CarBrowse.nextProgram(currentProgram(), programs().map { it.number })
+        if (next >= 0) tune(freqHz, next)
     }
 
     private fun goForeground(text: String) {
@@ -1539,6 +1631,8 @@ class RadioService : Service() {
         const val ACTION_NEXT = "io.github.derek20la.hidefradio.NEXT"
         const val ACTION_PREVIOUS = "io.github.derek20la.hidefradio.PREVIOUS"
         private const val CUSTOM_ACTION_STOP = "stop"     // the ⏹ button on Android 13+
+        private const val CUSTOM_ACTION_NEXT_HD = "next_hd"  // Android Auto: HD1 -> HD2 -> ...
+        private const val CAR_ICON = 256                   // the logos in the car's list, pixels wide
 
         // 9h: silentReason() values
         const val SILENT_NO = 0
