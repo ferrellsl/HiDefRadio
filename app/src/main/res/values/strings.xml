@@ -109,6 +109,7 @@
     <string name="previous">Previous favorite</string>
     <string name="next">Next favorite</string>
     <string name="stop">Stop</string>
+    <string name="car_next_hd">Next HD program</string>
     <string name="setting_pause_stop">Stop the radio after pausing for</string>
     <string name="setting_hd_mode">HD Radio</string>   <!-- M11 -->
     <string name="setting_hd_mode_help">Auto plays the analog at once and blends to the HD audio when it is good, like a car radio - and back before a dropout. On AM the sound runs about 3 seconds behind live in Auto, so the blend has time to line up. Digital only is HD only (silence without HD). Analog only switches the HD decoder off (saves battery).</string>   <!-- 11d; 12a step 3; build 19: AM has analog + blend now -->
