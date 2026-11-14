@@ -23,6 +23,8 @@ To set it up (once, on the phone):
 
 Then connect to the car and pick HiDef Radio Maps from the Android Auto launcher.
 
+**Phones and tablets:** Android Auto works with any phone. On a tablet it works only if the tablet takes a SIM card, because then Android treats it as a phone; the ALLDOCUBE iPlay 50 is one that runs Android Auto. On a Wi-Fi-only tablet, Android Auto may install from an APK, but its settings won't open, or the car refuses it with a message that the app wasn't bundled with the system by the manufacturer (tried on a Samsung tablet and a Lenovo Legion Y700). HiDef Radio Maps itself still runs fine on those tablets, with the full-screen maps, just not on the car's screen. A tablet with a SIM slot gives you both: the album art and controls on the car's screen, and the maps full-screen on the tablet.
+
 **Windows version:** HiDef Radio also runs on Windows 10 and 11 with the same RTL-SDR dongle: HD Radio and analog FM/AM, album art and logos, the traffic and weather maps with their time stamps, ad image blocking, recording (audio and IQ), favorites and the signal details. Get the installer or the zip from the [Releases](https://github.com/ferrellsl/HiDefRadio/releases) page. The dongle needs the WinUSB driver, which [Zadig](https://zadig.akeo.ie) installs. It uses the Android app's own radio engine, built for Windows; see [windows/README.md](windows/README.md).
 
 ---
