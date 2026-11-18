@@ -33,7 +33,7 @@ extern "C" void hidef_log_open(const char *path);
 extern "C" int __android_log_print(int, const char *, const char *, ...);
 #define ULOG(...) __android_log_print(4, "Window", __VA_ARGS__)
 
-#define HIDEF_VERSION "1.0.2"
+#define HIDEF_VERSION "1.0.3"
 
 namespace {
 
@@ -116,6 +116,7 @@ struct App {
     long long trafficTimeMs = 0;
     int mapGen = -1;
 
+    bool compact = false;                  // a short window (small tablets): tighter layout
     bool mapFull = false;                  // a map fills the window (double-click)
     int radarFrame = 0;
     bool radarPlaying = false;
@@ -434,7 +435,7 @@ void drawTopBar(float W, int freqHz) {
         fill(D2D1::RectF(vr.left, cy - 2, kx, cy + 2), C_VFD_ON, 1, 2);
         setColor(C_VFD_ON);
         app.rt->FillEllipse(D2D1::Ellipse(D2D1::Point2F(kx, cy), 8, 8), app.brush);
-        text(fmt("%d %%", app.cfg.volume), D2D1::RectF(x + 30, top, x + vw, top + 28), format(13), C_DIM, 1, RIGHT);
+        text(fmt("%d %%", app.cfg.volume), D2D1::RectF(x + 20, top, x + vw, top + 28), format(13), C_DIM, 1, RIGHT);
         addHit(D2D1::RectF(vr.left - 8, top + 20, vr.right + 8, top + bh - 20), H_VOLUME);
     }
     button(D2D1::RectF(W - 72, top + 14, W - 16, top + bh - 14), "\xE2\x9A\x99", H_SETTINGS, 0, 24, C_SURFACE, C_TEXT);   // ⚙
@@ -444,9 +445,12 @@ void drawTopBar(float W, int freqHz) {
 float drawPrograms(float left, float right, float y) {
     if (app.programs.empty()) return 0;
     float x = left, top = y;
+    int n = (int)app.programs.size();
+    float fitW = (right - left - (n - 1) * 10.0f) / n;   // each tile's share of one row
     for (const Program &p : app.programs) {
         std::string name = p.nameFor(app.shown.station());
         float w = std::max(84.0f, std::min(220.0f, textWidth(name, format(12)) + 28));
+        if (app.compact && fitW >= 84) w = std::min(w, fitW);
         if (x + w > right && x > left) {
             x = left;
             y += 58;
@@ -469,8 +473,14 @@ float drawPrograms(float left, float right, float y) {
 
 // The favorites as tiles across the left column, wrapping; returns the height used.
 float drawPresets(float left, float right, float y, int freqHz) {
-    const float tw = 150, th = 112;
+    const float tw = app.compact ? 114.0f : 150.0f, th = app.compact ? 80.0f : 112.0f;
+    const float gap = app.compact ? 8.0f : 12.0f;
+    const float k = th / 112;   // tile contents scale with the tile
     if (app.cfg.presets.empty()) {
+        if (app.compact) {
+            text("No favorites yet. Click \xE2\x98\x86 to add one.", D2D1::RectF(left, y, right, y + 24), format(14), C_DIM, 1, LEFT, false, true);
+            return 30;
+        }
         text("No favorites yet. Click \xE2\x98\x86 next to the station name to add one.", D2D1::RectF(left, y, right, y + 40),
              format(15), C_DIM, 1, LEFT, false, true);
         return 48;
@@ -480,7 +490,7 @@ float drawPresets(float left, float right, float y, int freqHz) {
         const Preset &p = app.cfg.presets[i];
         if (x + tw > right && x > left) {
             x = left;
-            y += th + 12;
+            y += th + gap;
         }
         D2D1_RECT_F r = D2D1::RectF(x, y, x + tw, y + th);
         bool current = p.freqHz == freqHz && p.program == app.program;
@@ -489,17 +499,17 @@ float drawPresets(float left, float right, float y, int freqHz) {
         std::string key = fmt("%d/%d/%d", p.freqHz, p.program, logocache::version());
         Pic &pic = app.presetPics[fmt("%d/%d", p.freqHz, p.program)];
         if (pic.key != key) makePic(pic, logocache::load(p.freqHz, p.program), key);
-        D2D1_RECT_F logoArea = D2D1::RectF(r.left + 10, r.top + 8, r.right - 10, r.top + 64);
+        D2D1_RECT_F logoArea = D2D1::RectF(r.left + 10, r.top + 8 * k, r.right - 10, r.top + 64 * k);
         if (pic.bmp) drawFit(pic, logoArea);
-        else text(band::freqText(p.freqHz), logoArea, format(24, DWRITE_FONT_WEIGHT_BOLD, true), C_VFD_ON, 0.8f, CENTER, false, true);
+        else text(band::freqText(p.freqHz), logoArea, format(24 * k, DWRITE_FONT_WEIGHT_BOLD, true), C_VFD_ON, 0.8f, CENTER, false, true);
         std::string name = p.name.empty() ? band::bandText(p.freqHz) : p.name;
-        text(name, D2D1::RectF(r.left + 6, r.top + 66, r.right - 6, r.top + 88), format(16, DWRITE_FONT_WEIGHT_BOLD), C_TEXT, 1, CENTER, false, true);
-        text(band::freqText(p.freqHz) + " HD" + std::to_string(p.program + 1), D2D1::RectF(r.left + 6, r.top + 88, r.right - 6, r.bottom - 6),
-             format(13), C_DIM, 1, CENTER, false, true);
+        text(name, D2D1::RectF(r.left + 6, r.top + 66 * k, r.right - 6, r.top + 88 * k), format(16 * k, DWRITE_FONT_WEIGHT_BOLD), C_TEXT, 1, CENTER, false, true);
+        text(band::freqText(p.freqHz) + " HD" + std::to_string(p.program + 1), D2D1::RectF(r.left + 6, r.top + 88 * k, r.right - 6, r.bottom - 6 * k),
+             format(13 * std::max(k, 0.9f)), C_DIM, 1, CENTER, false, true);
         addHit(r, H_PRESET, (int)i);
-        x += tw + 12;
+        x += tw + gap;
     }
-    return y + th + 14 - top;
+    return y + th + gap + 2 - top;
 }
 
 bool isFavorite(int freqHz) {
@@ -515,10 +525,21 @@ void drawNowPlaying(const D2D1_RECT_F &area, int freqHz) {
     float W = area.right - area.left;
     float y = area.top;
 
-    // the big picture
+    // the big picture. A short window (small tablets) has no room for it above the text,
+    // so there it goes beside the text, and the lines are packed tighter.
     float textBlock = 230;
     float picH = std::min(W * 0.75f, area.bottom - area.top - textBlock);
-    if (app.nowPic.bmp && picH > 80) {
+    bool side = app.compact || picH < 160;
+    float left = area.left, picBottom = y;
+    if (side) {
+        float sz = std::min({area.bottom - area.top - 44, W * 0.42f, 220.0f});
+        if (app.nowPic.bmp && sz >= 64) {
+            D2D1_RECT_F where = drawFit(app.nowPic, D2D1::RectF(area.left, y, area.left + sz, y + sz));
+            addHit(where, H_NOW_IMAGE);
+            left = area.left + sz + 14;
+            picBottom = y + sz + 8;
+        }
+    } else if (app.nowPic.bmp && picH > 80) {
         D2D1_RECT_F pr = D2D1::RectF(area.left, y, area.right, y + picH);
         D2D1_RECT_F where = drawFit(app.nowPic, pr);
         addHit(where, H_NOW_IMAGE);
@@ -526,20 +547,27 @@ void drawNowPlaying(const D2D1_RECT_F &area, int freqHz) {
     } else if (picH > 80) {
         y += std::min(picH, 60.0f);
     }
+    // font sizes and line heights: roomy, or packed beside the picture
+    const float nameF = side ? 24.0f : 38.0f, progF = side ? 16.0f : 20.0f;
+    const float titleF = side ? 19.0f : 28.0f, artistF = side ? 16.0f : 22.0f;
+    auto lineH = [&](float f) { return side ? std::ceil(f * 1.35f) : 0.0f; };
+    // packed: up to two lines, but never into the signal line at the bottom
+    auto lines2 = [&](float f) { return std::floor(std::min(2 * lineH(f), area.bottom - 34 - y) / lineH(f)) * lineH(f); };
 
     // station row: small logo (while the art has the big spot), name, star
-    float rowH = 56;
-    float x = area.left;
-    if (app.smallLogo.bmp) {
+    float rowH = side ? lineH(nameF) : 56;
+    float x = left;
+    if (app.smallLogo.bmp && !side) {
         drawFit(app.smallLogo, D2D1::RectF(x, y, x + rowH, y + rowH));
         x += rowH + 14;
     }
-    D2D1_RECT_F star = D2D1::RectF(area.right - 48, y + 4, area.right, y + rowH - 4);
-    text(stationName(freqHz), D2D1::RectF(x, y, star.left - 8, y + rowH), format(38, DWRITE_FONT_WEIGHT_SEMI_LIGHT), C_TEXT, 1, LEFT, false, true);
+    float starW = side ? 32 : 48;
+    D2D1_RECT_F star = D2D1::RectF(area.right - starW, y + 2, area.right, y + rowH - 2);
+    text(stationName(freqHz), D2D1::RectF(x, y, star.left - 6, y + rowH), format(nameF, DWRITE_FONT_WEIGHT_SEMI_LIGHT), C_TEXT, 1, LEFT, false, true);
     bool fav = isFavorite(freqHz);
-    text(fav ? "\xE2\x98\x85" : "\xE2\x98\x86", star, format(30), fav ? C_STAR : C_TEXT, 1, CENTER, false, true);
+    text(fav ? "\xE2\x98\x85" : "\xE2\x98\x86", star, format(side ? 22.0f : 30.0f), fav ? C_STAR : C_TEXT, 1, CENTER, false, true);
     addHit(star, H_STAR);
-    y += rowH + 4;
+    y += side ? rowH : rowH + 4;
 
     // program: "HD1 · Adult Hits"; an RDS station: "FM · Religious talk"
     const Program *prog = rdsMode ? nullptr : selectedProgram();
@@ -552,8 +580,9 @@ void drawNowPlaying(const D2D1_RECT_F &area, int freqHz) {
         progLine = label.empty() ? prog->hdName() : prog->hdName() + " \xC2\xB7 " + label;
     }
     if (!progLine.empty()) {
-        text(progLine, D2D1::RectF(area.left, y, area.right, y + 30), format(20), C_VFD_ON, 1, LEFT, false, true);
-        y += 34;
+        float h = side ? lineH(progF) : 30;
+        text(progLine, D2D1::RectF(left, y, area.right, y + h), format(progF), C_VFD_ON, 1, LEFT, false, true);
+        y += side ? h + 4 : 34;
     }
 
     // song, or the slogan; radio off: why
@@ -569,33 +598,41 @@ void drawNowPlaying(const D2D1_RECT_F &area, int freqHz) {
         artist = rdsMode ? s.rdsLine2() : "";
     }
     if (!on) {
-        float h = text(title, D2D1::RectF(area.left, y + 6, area.right, y + 80), format(17), C_HOLDING, 1, LEFT, true);
-        y += h + 18;
-        D2D1_RECT_F sb = D2D1::RectF(area.left, y, area.left + 220, y + 52);
-        button(sb, "\xE2\x96\xB6  Start radio", H_START, 0, 20);
-        y += 66;
+        float h = text(title, D2D1::RectF(left, y + 6, area.right, y + 80), format(side ? 15.0f : 17.0f), C_HOLDING, 1, LEFT, true);
+        y += h + (side ? 12 : 18);
+        D2D1_RECT_F sb = D2D1::RectF(left, y, left + (side ? 180 : 220), y + (side ? 42 : 52));
+        button(sb, "\xE2\x96\xB6  Start radio", H_START, 0, side ? 17 : 20);
+        y += side ? 50 : 66;
     } else {
+        // in the packed layout the song and artist may take two lines each beside the picture
         if (!trim(title).empty()) {
-            text(title, D2D1::RectF(area.left, y, area.right, y + 40), format(28), C_TEXT, 1, LEFT, false, true);
-            y += 40;
+            if (side) { float h = lines2(titleF); if (h > 0) y += std::min(text(title, D2D1::RectF(left, y, area.right, y + h), format(titleF), C_TEXT, 1, LEFT, true), h) + 2; }
+            else {
+                text(title, D2D1::RectF(left, y, area.right, y + 40), format(titleF), C_TEXT, 1, LEFT, false, true);
+                y += 40;
+            }
         }
         if (!trim(artist).empty()) {
-            text(artist, D2D1::RectF(area.left, y, area.right, y + 32), format(22), C_TEXT, 0.85f, LEFT, false, true);
-            y += 34;
+            if (side) { float h = lines2(artistF); if (h > 0) y += std::min(text(artist, D2D1::RectF(left, y, area.right, y + h), format(artistF), C_TEXT, 0.85f, LEFT, true), h) + 2; }
+            else {
+                text(artist, D2D1::RectF(left, y, area.right, y + 32), format(artistF), C_TEXT, 0.85f, LEFT, false, true);
+                y += 34;
+            }
         }
         if (app.radio->paused()) {
-            text("\xE2\x8F\xB8 Paused", D2D1::RectF(area.left, y, area.right, y + 26), format(16), C_HOLDING, 1, LEFT, false, true);
-            y += 28;
+            text("\xE2\x8F\xB8 Paused", D2D1::RectF(left, y, area.right, y + 26), format(side ? 15.0f : 16.0f), C_HOLDING, 1, LEFT, false, true);
+            y += side ? 22 : 28;
         }
     }
-    y += 10;
+    y = std::max(y + (side ? 6 : 10), picBottom);
 
     // signal line: dot + text; click = open/close the details
     std::string weakWhy = on ? app.weak.reason(s) : "";
     sigtext::Line line = sigtext::signalLine(on, s, weakWhy);
+    y = std::min(y, area.bottom - 30);
     D2D1_RECT_F sl = D2D1::RectF(area.left, y, area.right, y + 30);
     text("\xE2\x97\x8F", D2D1::RectF(sl.left, sl.top, sl.left + 24, sl.bottom), format(16), signalColor(line.color), 1, LEFT, false, true);
-    text(line.text, D2D1::RectF(sl.left + 26, sl.top, sl.right - 30, sl.bottom), format(18), C_TEXT, 0.9f, LEFT, false, true);
+    text(line.text, D2D1::RectF(sl.left + 26, sl.top, sl.right - 30, sl.bottom), format(side ? 16.0f : 18.0f), C_TEXT, 0.9f, LEFT, false, true);
     text(app.cfg.detailsOpen ? "\xE2\x96\xB4" : "\xE2\x96\xBE", D2D1::RectF(sl.right - 26, sl.top, sl.right, sl.bottom), format(16), C_DIM, 1, CENTER, false, true);
     addHit(sl, H_SIGNAL);
     y += 34;
@@ -611,8 +648,13 @@ void drawDetails(const D2D1_RECT_F &area, int freqHz) {
     std::string weakWhy = on ? app.weak.reason(app.shown) : "";
     auto rows = sigtext::details(on, app.shown, weakWhy, freqHz, on ? app.radio->soundMs() : -1,
                                  on ? app.radio->gainKeeper() : nullptr);
-    IDWriteTextFormat *f = format(15);
-    float nameW = 110, gap = 16;
+    rows.push_back({"Maps", "© OpenStreetMap contributors"});   // the credit for the base map under the radar and traffic
+    IDWriteTextFormat *f = format(app.compact ? 14.0f : 15.0f);
+    // the label column is only as wide as the widest label, which leaves the values room on
+    // one line (a value that wraps moves the rows below it whenever its numbers change)
+    float nameW = 0, gap = 12;
+    for (auto &r : rows) nameW = std::max(nameW, textWidth(r.first, f));
+    nameW = std::min(std::ceil(nameW) + 2, 110.0f);
     float valueW = area.right - area.left - nameW - gap;
     float total = 0;
     std::vector<float> heights;
@@ -728,9 +770,9 @@ void drawMaps(const D2D1_RECT_F &area, float tabsX, float headY) {
     D2D1_RECT_F where = drawFit(pic, mapArea);
     drawStamp(where, cur.timeMs);
     addHit(where, H_MAP);
-    // the radar row: play/pause, slider, "Frame 3 of 12. Map © OpenStreetMap contributors"
+    // the radar row: play/pause, slider, "Frame 3 of 12" (the map credit is in Settings > About)
     float ry = bottom + 8;
-    std::string note = fmt("Frame %d of %d. Map \xC2\xA9 OpenStreetMap contributors", app.radarFrame + 1, n);
+    std::string note = fmt("Frame %d of %d", app.radarFrame + 1, n);
     if (radarRow) {
         D2D1_RECT_F pb = D2D1::RectF(area.left, ry, area.left + 48, ry + 40);
         button(pb, app.radarPlaying ? "\xE2\x8F\xB8" : "\xE2\x96\xB6", H_PLAY, 0, 18, C_SURFACE, C_TEXT);
@@ -756,6 +798,7 @@ void paint() {
     D2D1_SIZE_F size = app.rt->GetSize();
     float W = size.width, H = size.height;
     int freqHz = running() ? app.radio->freqHz() : app.cfg.freqHz;
+    app.compact = H < 680 || W < 960;   // e.g. an 8" 1280x800 tablet at 150 % is 853 x 533
 
     app.rt->BeginDraw();
     app.rt->Clear(rgb(C_BG));
@@ -768,7 +811,7 @@ void paint() {
         // left column: HD1-HD8, favorites, now playing; the right-hand pane starts right under
         // the frequency bar, so the details and maps get the full height
         float top = 116;
-        float split = std::floor(W * 0.46f);
+        float split = std::floor(W * (app.compact ? 0.48f : 0.46f));
         float y = top;
         y += drawPrograms(16, split - 16, y);
         y += drawPresets(16, split - 16, y, freqHz);
@@ -1275,8 +1318,8 @@ LRESULT CALLBACK wndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     }
     case WM_GETMINMAXINFO: {
         MINMAXINFO *mm = (MINMAXINFO *)lp;
-        mm->ptMinTrackSize.x = MulDiv(900, (int)app.dpi, 96);
-        mm->ptMinTrackSize.y = MulDiv(600, (int)app.dpi, 96);
+        mm->ptMinTrackSize.x = MulDiv(760, (int)app.dpi, 96);
+        mm->ptMinTrackSize.y = MulDiv(460, (int)app.dpi, 96);
         return 0;
     }
     case WM_SETCURSOR:
