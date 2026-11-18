@@ -33,7 +33,7 @@ extern "C" void hidef_log_open(const char *path);
 extern "C" int __android_log_print(int, const char *, const char *, ...);
 #define ULOG(...) __android_log_print(4, "Window", __VA_ARGS__)
 
-#define HIDEF_VERSION "1.0.3"
+#define HIDEF_VERSION "1.0.4"
 
 namespace {
 
@@ -517,6 +517,18 @@ bool isFavorite(int freqHz) {
     return false;
 }
 
+// The signal line: dot + "HD MP3  MER 11.4 / 11.8  BER 0.00%" + the arrow; a click opens or
+// closes the details.
+void drawSignalLine(const D2D1_RECT_F &sl, float size) {
+    bool on = running();
+    std::string weakWhy = on ? app.weak.reason(app.shown) : "";
+    sigtext::Line line = sigtext::signalLine(on, app.shown, weakWhy);
+    text("\xE2\x97\x8F", D2D1::RectF(sl.left, sl.top, sl.left + 24, sl.bottom), format(16), signalColor(line.color), 1, LEFT, false, true);
+    text(line.text, D2D1::RectF(sl.left + 26, sl.top, sl.right - 30, sl.bottom), format(size), C_TEXT, 0.9f, LEFT, false, true);
+    text(app.cfg.detailsOpen ? "\xE2\x96\xB4" : "\xE2\x96\xBE", D2D1::RectF(sl.right - 26, sl.top, sl.right, sl.bottom), format(16), C_DIM, 1, CENTER, false, true);
+    addHit(sl, H_SIGNAL);
+}
+
 void drawNowPlaying(const D2D1_RECT_F &area, int freqHz) {
     bool on = running();
     const Sig &s = app.shown;
@@ -525,19 +537,30 @@ void drawNowPlaying(const D2D1_RECT_F &area, int freqHz) {
     float W = area.right - area.left;
     float y = area.top;
 
-    // the big picture. A short window (small tablets) has no room for it above the text,
-    // so there it goes beside the text, and the lines are packed tighter.
+    // the big picture. A short window (small tablets) has no room for it above the roomy text,
+    // so there the lines are packed tighter ("side"), and the picture goes wherever it can be
+    // biggest: beside the text (keeping ~150 for the text) or above it (keeping ~170 below).
+    // The signal line sits at the bottom of the column, or in compact mode in the details.
     float textBlock = 230;
     float picH = std::min(W * 0.75f, area.bottom - area.top - textBlock);
     bool side = app.compact || picH < 160;
     float left = area.left, picBottom = y;
     if (side) {
-        float sz = std::min({area.bottom - area.top - 44, W * 0.42f, 220.0f});
+        float freeH = area.bottom - area.top;
+        float besideSz = std::min(freeH - (app.compact ? 0 : 40), W - 165);
+        float aboveSz = std::min(W, freeH - 170);
+        float sz = std::max(besideSz, aboveSz);
         if (app.nowPic.bmp && sz >= 64) {
-            D2D1_RECT_F where = drawFit(app.nowPic, D2D1::RectF(area.left, y, area.left + sz, y + sz));
-            addHit(where, H_NOW_IMAGE);
-            left = area.left + sz + 14;
-            picBottom = y + sz + 8;
+            if (besideSz >= aboveSz) {
+                D2D1_RECT_F where = drawFit(app.nowPic, D2D1::RectF(area.left, y, area.left + sz, y + sz));
+                addHit(where, H_NOW_IMAGE);
+                left = area.left + sz + 14;
+                picBottom = y + sz + 8;
+            } else {
+                D2D1_RECT_F where = drawFit(app.nowPic, D2D1::RectF(area.left, y, area.right, y + sz));
+                addHit(where, H_NOW_IMAGE);
+                y += sz + 10;
+            }
         }
     } else if (app.nowPic.bmp && picH > 80) {
         D2D1_RECT_F pr = D2D1::RectF(area.left, y, area.right, y + picH);
@@ -626,17 +649,14 @@ void drawNowPlaying(const D2D1_RECT_F &area, int freqHz) {
     }
     y = std::max(y + (side ? 6 : 10), picBottom);
 
-    // signal line: dot + text; click = open/close the details
-    std::string weakWhy = on ? app.weak.reason(s) : "";
-    sigtext::Line line = sigtext::signalLine(on, s, weakWhy);
-    y = std::min(y, area.bottom - 30);
-    D2D1_RECT_F sl = D2D1::RectF(area.left, y, area.right, y + 30);
-    text("\xE2\x97\x8F", D2D1::RectF(sl.left, sl.top, sl.left + 24, sl.bottom), format(16), signalColor(line.color), 1, LEFT, false, true);
-    text(line.text, D2D1::RectF(sl.left + 26, sl.top, sl.right - 30, sl.bottom), format(side ? 16.0f : 18.0f), C_TEXT, 0.9f, LEFT, false, true);
-    text(app.cfg.detailsOpen ? "\xE2\x96\xB4" : "\xE2\x96\xBE", D2D1::RectF(sl.right - 26, sl.top, sl.right, sl.bottom), format(16), C_DIM, 1, CENTER, false, true);
-    addHit(sl, H_SIGNAL);
-    y += 34;
+    // signal line (compact: it is in the signal details instead, which leaves the room to the picture)
     std::string notice = on ? sigtext::otherHdNotice(s) : "";
+    if (!app.compact) {
+        if (side && notice.empty()) y = area.bottom - 30;   // packed: at the bottom, under the picture
+        y = std::min(y, area.bottom - 30);
+        drawSignalLine(D2D1::RectF(area.left, y, area.right, y + 30), side ? 16.0f : 18.0f);
+        y += 34;
+    }
     if (!notice.empty()) {
         float h = text(notice, D2D1::RectF(area.left, y, area.right, area.bottom), format(16), C_HOLDING, 1, LEFT, true);
         addHit(D2D1::RectF(area.left, y, area.right, y + h), H_OTHER_HD);
@@ -733,11 +753,12 @@ void drawMaps(const D2D1_RECT_F &area, float tabsX, float headY) {
     float y = area.top;
     if (tabsX >= 0) {   // the Traffic / Weather buttons (in the pane's heading row unless full screen)
         float ty = app.mapFull ? y : headY;
-        D2D1_RECT_F t1 = D2D1::RectF(tabsX, ty, tabsX + 120, ty + 40);
-        D2D1_RECT_F t2 = D2D1::RectF(tabsX + 128, ty, tabsX + 248, ty + 40);
-        button(t1, "Traffic", H_TAB_TRAFFIC, 0, 17, C_SURFACE, C_TEXT, weather ? 0.5f : 1.0f);
+        float tw = app.compact && !app.mapFull ? 96.0f : 120.0f, tf = app.compact && !app.mapFull ? 16.0f : 17.0f;
+        D2D1_RECT_F t1 = D2D1::RectF(tabsX, ty, tabsX + tw, ty + 40);
+        D2D1_RECT_F t2 = D2D1::RectF(tabsX + tw + 8, ty, tabsX + 2 * tw + 8, ty + 40);
+        button(t1, "Traffic", H_TAB_TRAFFIC, 0, tf, C_SURFACE, C_TEXT, weather ? 0.5f : 1.0f);
         if (!weather) stroke(t1, C_VFD_ON, 1, 12, 2);
-        button(t2, "Weather", H_TAB_WEATHER, 0, 17, C_SURFACE, C_TEXT, weather ? 1.0f : 0.5f);
+        button(t2, "Weather", H_TAB_WEATHER, 0, tf, C_SURFACE, C_TEXT, weather ? 1.0f : 0.5f);
         if (weather) stroke(t2, C_VFD_ON, 1, 12, 2);
         if (app.mapFull) {
             text("Double-click or Esc to go back", D2D1::RectF(t2.right + 16, ty, area.right, ty + 40), format(14), C_DIM, 1, RIGHT, false, true);
@@ -811,7 +832,7 @@ void paint() {
         // left column: HD1-HD8, favorites, now playing; the right-hand pane starts right under
         // the frequency bar, so the details and maps get the full height
         float top = 116;
-        float split = std::floor(W * (app.compact ? 0.48f : 0.46f));
+        float split = std::floor(W * (app.compact ? 0.555f : 0.46f));   // compact: the maps are limited by the height anyway
         float y = top;
         y += drawPrograms(16, split - 16, y);
         y += drawPresets(16, split - 16, y, freqHz);
@@ -823,14 +844,17 @@ void paint() {
         app.rt->DrawLine(D2D1::Point2F(split, y), D2D1::Point2F(split, H - 16), app.brush, 1);
         // one heading row: "Signal details ▾" and, while they're closed, Traffic / Weather beside it
         std::string headText = std::string("Signal details  ") + (app.cfg.detailsOpen ? "\xE2\x96\xB4" : "\xE2\x96\xBE");
-        IDWriteTextFormat *hf = format(19, DWRITE_FONT_WEIGHT_SEMI_BOLD);
+        IDWriteTextFormat *hf = format(app.compact ? 17.0f : 19.0f, DWRITE_FONT_WEIGHT_SEMI_BOLD);
         float headW = textWidth(headText, hf) + 8;
         D2D1_RECT_F head = D2D1::RectF(rx, y, rx + headW, y + 40);
         text(headText, head, hf, C_TEXT, 0.9f, LEFT, false, true);
         addHit(head, H_DETAILS_HEAD);
         D2D1_RECT_F pane = D2D1::RectF(rx, y + 50, W - 16, H - 12);
-        if (app.cfg.detailsOpen) drawDetails(pane, freqHz);
-        else if (running()) drawMaps(pane, head.right + 24, y);
+        if (app.cfg.detailsOpen && app.compact) {   // compact: the signal line heads the details
+            drawSignalLine(D2D1::RectF(pane.left, pane.top - 6, pane.right, pane.top + 24), 15);
+            drawDetails(D2D1::RectF(pane.left, pane.top + 32, pane.right, pane.bottom), freqHz);
+        } else if (app.cfg.detailsOpen) drawDetails(pane, freqHz);
+        else if (running()) drawMaps(pane, head.right + (app.compact ? 10 : 24), y);
         else text("The traffic and weather maps show here while the radio plays.", pane, format(16), C_DIM, 1, LEFT, true);
     }
     // the toast: a message at the bottom for a few seconds
