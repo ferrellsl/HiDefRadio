@@ -1212,6 +1212,8 @@ class MainActivity : AppCompatActivity() {
             // (includes stopping the old station, auto-gain and the pre-buffer).
             "Tuning" to "sync after ${Signal.seconds(s.syncMs)}, audio after ${Signal.seconds(s.audioMs)}\n" +
                         "sound after ${Signal.seconds(RadioService.instance?.soundMs() ?: -1L)}",
+            // the credit for the base map under the radar and traffic maps
+            "Maps" to "© OpenStreetMap contributors",
         )
     }
 
