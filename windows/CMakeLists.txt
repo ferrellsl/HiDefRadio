@@ -8,6 +8,15 @@ set(EXT ${HIDEF_CPP}/external)
 set(CMAKE_C_FLAGS_RELEASE "-O2")
 set(CMAKE_CXX_FLAGS_RELEASE "-O2")
 
+# 32-bit (i686) build: pass a 32-bit MinGW gcc (MSYS2 mingw32) and this switches on by itself.
+# SSE2 math instead of x87, like x64, and SSE3/SSSE3 as the x64 build already needs for nrsc5.
+# -mstackrealign: Windows only keeps a 32-bit stack 4-byte aligned, so threads and callbacks
+# entered from Windows (audio, USB, thread starts) would run the SSE code on a misaligned stack.
+if(CMAKE_SIZEOF_VOID_P EQUAL 4)
+    set(HIDEF_32BIT ON)
+    add_compile_options(-msse2 -mfpmath=sse -mstackrealign)
+endif()
+
 # ---- libusb (Windows backend: WinUSB) ----
 add_library(usb-1.0 STATIC
     ${EXT}/libusb/libusb/core.c ${EXT}/libusb/libusb/descriptor.c ${EXT}/libusb/libusb/hotplug.c
@@ -27,7 +36,7 @@ target_include_directories(rtlsdr PUBLIC ${EXT}/rtl-sdr-blog/include)
 target_compile_definitions(rtlsdr PUBLIC rtlsdr_STATIC)
 target_link_libraries(rtlsdr PUBLIC usb-1.0)
 
-# ---- FFTW 3.3.10 single precision, SSE2 codelets (every x64 CPU has SSE2) ----
+# ---- FFTW 3.3.10 single precision, SSE2 codelets (every x64 CPU has SSE2; the 32-bit build needs it too) ----
 set(ENABLE_FLOAT ON CACHE BOOL "" FORCE)
 set(ENABLE_SSE2 ON CACHE BOOL "" FORCE)
 set(ENABLE_AVX OFF CACHE BOOL "" FORCE)    # FFTW's CMake puts -mavx on the WHOLE library (not just its AVX codelets),
@@ -55,6 +64,10 @@ target_compile_definitions(nrsc5 PRIVATE _GNU_SOURCE HAVE_FAAD2 HAVE_SSE2 HAVE_S
 target_compile_options(nrsc5 PRIVATE -msse2 -msse3 -mssse3)
 target_include_directories(nrsc5 PRIVATE ${CMAKE_SOURCE_DIR}/compat/nrsc5 ${N} PUBLIC ${EXT}/nrsc5/include)
 target_link_libraries(nrsc5 PUBLIC faad_hdc fftw3f rtlsdr ws2_32 pthread)
+if(HIDEF_32BIT)
+    # its SSE Viterbi decoder needs 16-byte aligned memory: see compat/nrsc5/config.h
+    set_source_files_properties(${N}/conv_dec.c PROPERTIES COMPILE_DEFINITIONS HIDEF_CONV_DEC)
+endif()
 
 
 # ---- the Android app's engine, compiled unchanged ----

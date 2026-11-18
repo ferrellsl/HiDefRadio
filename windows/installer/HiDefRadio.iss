@@ -1,11 +1,19 @@
 ; HiDef Radio for Windows - installer (Inno Setup 6). Built by package.ps1, which passes
-; the version and the folder with the files: ISCC /DAppVersion=1.0.0 /DSourceDir=... HiDefRadio.iss
+; the version, the folder with the files and x64 or x86: ISCC /DAppVersion=1.0.0 /DSourceDir=... /DArch=x64 HiDefRadio.iss
 
 #ifndef AppVersion
   #define AppVersion "1.0.0"
 #endif
+#ifndef Arch
+  #define Arch "x64"
+#endif
+#if Arch == "x86"
+  #define Suffix "-x86"
+#else
+  #define Suffix ""
+#endif
 #ifndef SourceDir
-  #define SourceDir "..\dist\HiDefRadio-Windows-" + AppVersion
+  #define SourceDir "..\dist\HiDefRadio-Windows-" + AppVersion + Suffix
 #endif
 
 [Setup]
@@ -21,12 +29,15 @@ DefaultGroupName=HiDef Radio
 DisableProgramGroupPage=yes
 UninstallDisplayIcon={app}\HiDefRadio.exe
 OutputDir=..\dist
-OutputBaseFilename=HiDefRadio-Windows-{#AppVersion}-Setup
+OutputBaseFilename=HiDefRadio-Windows-{#AppVersion}{#Suffix}-Setup
 SetupIconFile=..\res\app.ico
 Compression=lzma2/max
 SolidCompression=yes
+#if Arch == "x64"
 ArchitecturesAllowed=x64
 ArchitecturesInstallIn64BitMode=x64
+#endif
+; (the 32-bit installer runs on any Windows 10/11 and installs into Program Files (x86) on 64-bit Windows)
 MinVersion=10.0
 WizardStyle=modern
 PrivilegesRequiredOverridesAllowed=dialog

@@ -60,6 +60,18 @@ station list, the base map, the DSEG7 font and the licenses, copied from the And
 then puts a zip and an Inno Setup installer in `dist`. Needs MSYS2 packages
 mingw-w64-x86_64-gcc, mingw-w64-x86_64-cmake and mingw-w64-x86_64-ninja, and Inno Setup 6.
 
+For older and 32-bit PCs there is a 32-bit build, made the same way with `-Arch x86`:
+
+    powershell -ExecutionPolicy Bypass -File package.ps1 -Version 1.0.2 -Arch x86
+
+It builds in `build32` and names its files `HiDefRadio-Windows-<version>-x86`. It needs the
+32-bit MSYS2 packages mingw-w64-i686-gcc, mingw-w64-i686-cmake and mingw-w64-i686-ninja.
+Like the 64-bit build it needs a CPU with SSE2, SSE3 and SSSE3 (Intel Core 2, Atom or later;
+AMD Bobcat, Bulldozer or later).
+If the 32-bit gcc stops without a message (error 0xC0000139), an old program has put its own
+libgcc_s_dw2-1.dll or libwinpthread-1.dll in Windows\SysWOW64, which Windows loads first:
+copy MSYS2's two from mingw32\bin into mingw32\lib\gcc\i686-w64-mingw32\<version>.
+
 Settings, favorites and blocked pictures are kept in `%APPDATA%\HiDefRadio`. Saved logos,
 radar frames and the log file (`hidefradio.log`) are kept in `%LOCALAPPDATA%\HiDefRadio`.
 
