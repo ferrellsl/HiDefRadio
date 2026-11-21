@@ -14,6 +14,8 @@ Stations with the Total Traffic Network or HERE data services send these maps. E
 
 **32-bit build:** the Releases page also has a `-32bit` APK, for older devices such as 32-bit car head units and old tablets.
 
+**Tried it on a car head unit?** I don't have an Android head unit to test with, so I'd love to hear from anyone who has sideloaded the app and got the dongle working on one. Please tell me how it went, good or bad (the head unit model, which APK you used, and how the dongle is connected), under [Issues](https://github.com/ferrellsl/HiDefRadio/issues) or in [Discussions](https://github.com/ferrellsl/HiDefRadio/discussions).
+
 **Android Auto:** HiDef Radio shows up in Android Auto's launcher, which gives HD Radio to a car that doesn't have it. The car's screen shows the album art and station logos, the song title and artist, play/pause, ⏮ ⏭ for your favorites, Stop, and an **HD** button that steps through HD1, HD2 and so on while the station has more than one. Your favorites are listed as tiles to tap and tune, and "Hey Google, play 95.5 HD2 on HiDef Radio Maps" tunes by voice. The traffic and weather maps stay on the phone, since Android Auto doesn't allow pictures like them. The dongle needs the phone's USB port, so use wireless Android Auto, or a USB hub that connects the phone, the dongle and the car (one from Anker works).
 
 To set it up (once, on the phone):
