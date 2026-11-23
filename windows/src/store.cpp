@@ -42,6 +42,7 @@ void Settings::load() {
     recFolder = widen(iniStr(S, L"RecordFolder"));
     const wchar_t *W = L"Window";
     detailsOpen = iniInt(W, L"DetailsOpen", 0) != 0;
+    bigArt = iniInt(W, L"BigArt", 0) != 0;
     mapTab = iniInt(W, L"MapTab", 0) == 1 ? 1 : 0;
     radarAutoPlay = iniInt(W, L"RadarAutoPlay", 1) != 0;
     winX = iniInt(W, L"X", -1);
@@ -84,6 +85,7 @@ void Settings::save() const {
     put(S, L"RecordFolder", narrow(recFolder));
     const wchar_t *W = L"Window";
     num(W, L"DetailsOpen", detailsOpen);
+    num(W, L"BigArt", bigArt);
     num(W, L"MapTab", mapTab);
     num(W, L"RadarAutoPlay", radarAutoPlay);
     num(W, L"X", winX);

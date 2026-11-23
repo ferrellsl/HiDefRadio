@@ -22,6 +22,7 @@ struct Settings {
     bool amDeemphasis = true;
     int volume = 100;                 // percent
     bool detailsOpen = false;         // the signal-details pane (closed: the maps take its place)
+    bool bigArt = false;              // double-click the picture: it fills the column, the text scrolls above it
     int mapTab = 0;                   // 0 traffic, 1 weather
     bool radarAutoPlay = true;        // the radar loop plays by itself
     int device = 0;                   // which RTL-SDR (index)

@@ -62,7 +62,7 @@ uint32_t signalColor(sigtext::Color c) {
 enum HitId {
     H_NONE, H_TUNE_DOWN, H_TUNE_UP, H_VFD, H_PAUSE, H_POWER, H_RECORD, H_SETTINGS, H_VOLUME, H_PROGRAM, H_PRESET,
     H_STAR, H_SIGNAL, H_OTHER_HD, H_DETAILS_HEAD, H_TAB_TRAFFIC, H_TAB_WEATHER, H_MAP, H_PLAY, H_SLIDER,
-    H_NOW_IMAGE, H_START, H_DETAILS
+    H_NOW_IMAGE, H_START, H_DETAILS, H_MARQUEE
 };
 struct Hit {
     D2D1_RECT_F r;
@@ -118,6 +118,10 @@ struct App {
 
     bool compact = false;                  // a short window (small tablets): tighter layout
     bool mapFull = false;                  // a map fills the window (double-click)
+    std::string marqueeText;               // big picture: the line scrolling above it
+    long long marqueeStartMs = 0;          // when that text first showed (the scroll starts from it)
+    bool marqueeMoving = false;            // it is too long to fit, so it scrolls (a faster timer runs)
+    bool fastTimer = false;
     int radarFrame = 0;
     bool radarPlaying = false;
     long long radarNextMs = 0;
@@ -529,11 +533,114 @@ void drawSignalLine(const D2D1_RECT_F &sl, float size) {
     addHit(sl, H_SIGNAL);
 }
 
-void drawNowPlaying(const D2D1_RECT_F &area, int freqHz) {
+// The words beside (or above) the picture: the program line, and the song or slogan; radio off: why.
+struct NowText {
+    std::string progLine, title, artist;
+};
+NowText nowText() {
+    NowText n;
     bool on = running();
     const Sig &s = app.shown;
     bool otherAnalog = on && s.otherHd() && s.analog();
     bool rdsMode = on && ((s.station().empty() && app.programs.empty()) || otherAnalog);
+    // program: "HD1 · Adult Hits"; an RDS station: "FM · Religious talk"
+    const Program *prog = rdsMode ? nullptr : selectedProgram();
+    if (rdsMode) {
+        std::string t = sigtext::ptyName((int)s.l("rdsPty", -1));
+        if (!t.empty()) n.progLine = "FM \xC2\xB7 " + t;
+    } else if (prog) {
+        std::string label = prog->nameFor(s.station());
+        n.progLine = label.empty() ? prog->hdName() : prog->hdName() + " \xC2\xB7 " + label;
+    }
+    if (!on) {
+        n.title = app.radio ? app.radio->message() : "";
+    } else if (prog && (!trim(prog->title).empty() || !trim(prog->artist).empty())) {
+        n.title = prog->title;
+        n.artist = prog->artist;
+    } else {
+        std::string slogan = s.slogan() != s.station() ? s.slogan() : "";
+        n.title = rdsMode ? s.rdsLine1() : slogan;
+        n.artist = rdsMode ? s.rdsLine2() : "";
+    }
+    return n;
+}
+
+// One line of text that scrolls right to left when it is too long for r: it rests at the start
+// for a moment, then moves until the next copy reaches the start, and rests again. A line that
+// fits stays still, centered.
+void drawMarquee(const std::string &s, const D2D1_RECT_F &r, IDWriteTextFormat *f, uint32_t c) {
+    if (s != app.marqueeText) {
+        app.marqueeText = s;
+        app.marqueeStartMs = nowMs();
+    }
+    float w = r.right - r.left, tw = textWidth(s, f);
+    if (tw <= w) {
+        text(s, r, f, c, 1, CENTER, false, true);
+        return;
+    }
+    app.marqueeMoving = true;
+    const float gap = 140, speed = 45;         // DIPs between the copies; DIPs a second
+    const long long restMs = 2500;
+    float period = tw + gap;
+    long long cycleMs = restMs + (long long)(period / speed * 1000);
+    long long t = (nowMs() - app.marqueeStartMs) % cycleMs;
+    float off = t < restMs ? 0 : std::min(period, (t - restMs) * speed / 1000.0f);
+    off = std::round(off * app.dpi / 96) * 96 / app.dpi;   // whole pixels: the text doesn't shimmer
+    app.rt->PushAxisAlignedClip(r, D2D1_ANTIALIAS_MODE_ALIASED);
+    for (float x : {r.left - off, r.left - off + period})
+        if (x < r.right) text(s, D2D1::RectF(x, r.top, x + tw + 8, r.bottom), f, c, 1, LEFT, false, true);
+    app.rt->PopAxisAlignedClip();
+}
+
+// The big picture (double-click the picture): the station, program, song and artist scroll in
+// one line above the picture, which takes the rest of the column. The favorites are hidden
+// meanwhile; the HD1-HD8 row stays, and so does the signal line (in the details when compact).
+void drawBigArt(const D2D1_RECT_F &area, int freqHz) {
+    const Sig &s = app.shown;
+    NowText nt = nowText();
+    std::vector<std::string> parts;
+    for (const std::string &p : {stationName(freqHz), nt.progLine, trim(nt.title), trim(nt.artist)})
+        if (!p.empty() && std::find(parts.begin(), parts.end(), p) == parts.end()) parts.push_back(p);
+    if (app.radio->paused()) parts.push_back("\xE2\x8F\xB8 Paused");
+    std::string line;
+    for (const std::string &p : parts) line += (line.empty() ? "" : "   \xE2\x80\xA2   ") + p;   // •
+
+    float rowH = app.compact ? 34.0f : 44.0f, starW = app.compact ? 34.0f : 44.0f;
+    float y = area.top;
+    D2D1_RECT_F row = D2D1::RectF(area.left, y, area.right - starW - 8, y + rowH);
+    drawMarquee(line, row, format(app.compact ? 20.0f : 24.0f), C_TEXT);
+    addHit(row, H_MARQUEE);
+    D2D1_RECT_F star = D2D1::RectF(area.right - starW, y, area.right, y + rowH);
+    bool fav = isFavorite(freqHz);
+    text(fav ? "\xE2\x98\x85" : "\xE2\x98\x86", star, format(app.compact ? 22.0f : 28.0f), fav ? C_STAR : C_TEXT, 1, CENTER, false, true);
+    addHit(star, H_STAR);
+    y += rowH + 6;
+
+    // under the picture: the signal line (not when compact) and a notice about the other station
+    float bottom = area.bottom;
+    std::string notice = sigtext::otherHdNotice(s);
+    float noticeH = notice.empty() ? 0 : textHeight(notice, format(16), area.right - area.left) + 4;
+    bottom -= noticeH + (app.compact ? 0 : 34);
+    D2D1_RECT_F where = drawFit(app.nowPic, D2D1::RectF(area.left, y, area.right, bottom));
+    addHit(where, H_NOW_IMAGE);
+    float by = std::min(where.bottom + 8, bottom);
+    if (!app.compact) {
+        drawSignalLine(D2D1::RectF(area.left, by, area.right, by + 30), 18.0f);
+        by += 34;
+    }
+    if (!notice.empty()) {
+        float h = text(notice, D2D1::RectF(area.left, by, area.right, area.bottom), format(16), C_HOLDING, 1, LEFT, true);
+        addHit(D2D1::RectF(area.left, by, area.right, by + h), H_OTHER_HD);
+    }
+}
+
+// The picture is big while it's switched on, the radio plays and there is a picture.
+bool bigArtShown() { return app.cfg.bigArt && running() && app.nowPic.bmp; }
+
+void drawNowPlaying(const D2D1_RECT_F &area, int freqHz) {
+    if (bigArtShown()) { drawBigArt(area, freqHz); return; }
+    bool on = running();
+    const Sig &s = app.shown;
     float W = area.right - area.left;
     float y = area.top;
 
@@ -593,15 +700,8 @@ void drawNowPlaying(const D2D1_RECT_F &area, int freqHz) {
     y += side ? rowH : rowH + 4;
 
     // program: "HD1 · Adult Hits"; an RDS station: "FM · Religious talk"
-    const Program *prog = rdsMode ? nullptr : selectedProgram();
-    std::string progLine;
-    if (rdsMode) {
-        std::string t = sigtext::ptyName((int)s.l("rdsPty", -1));
-        if (!t.empty()) progLine = "FM \xC2\xB7 " + t;
-    } else if (prog) {
-        std::string label = prog->nameFor(s.station());
-        progLine = label.empty() ? prog->hdName() : prog->hdName() + " \xC2\xB7 " + label;
-    }
+    NowText nt = nowText();
+    const std::string &progLine = nt.progLine, &title = nt.title, &artist = nt.artist;
     if (!progLine.empty()) {
         float h = side ? lineH(progF) : 30;
         text(progLine, D2D1::RectF(left, y, area.right, y + h), format(progF), C_VFD_ON, 1, LEFT, false, true);
@@ -609,17 +709,6 @@ void drawNowPlaying(const D2D1_RECT_F &area, int freqHz) {
     }
 
     // song, or the slogan; radio off: why
-    std::string title, artist;
-    if (!on) {
-        title = app.radio ? app.radio->message() : "";
-    } else if (prog && (!trim(prog->title).empty() || !trim(prog->artist).empty())) {
-        title = prog->title;
-        artist = prog->artist;
-    } else {
-        std::string slogan = s.slogan() != s.station() ? s.slogan() : "";
-        title = rdsMode ? s.rdsLine1() : slogan;
-        artist = rdsMode ? s.rdsLine2() : "";
-    }
     if (!on) {
         float h = text(title, D2D1::RectF(left, y + 6, area.right, y + 80), format(side ? 15.0f : 17.0f), C_HOLDING, 1, LEFT, true);
         y += h + (side ? 12 : 18);
@@ -824,6 +913,7 @@ void paint() {
     app.rt->BeginDraw();
     app.rt->Clear(rgb(C_BG));
     updatePictures(freqHz);
+    app.marqueeMoving = false;
 
     if (app.mapFull && running()) {
         drawMaps(D2D1::RectF(16, 16, W - 16, H - 12), 16, 16);
@@ -835,7 +925,7 @@ void paint() {
         float split = std::floor(W * (app.compact ? 0.555f : 0.46f));   // compact: the maps are limited by the height anyway
         float y = top;
         y += drawPrograms(16, split - 16, y);
-        y += drawPresets(16, split - 16, y, freqHz);
+        if (!bigArtShown()) y += drawPresets(16, split - 16, y, freqHz);
         drawNowPlaying(D2D1::RectF(16, y, split - 16, H - 16), freqHz);
         // the right-hand pane: its heading opens and closes the details; closed, the maps
         y = top;
@@ -869,6 +959,12 @@ void paint() {
     }
     HRESULT hr = app.rt->EndDraw();
     if (hr == D2DERR_RECREATE_TARGET) discardDevice();
+    // a scrolling line needs ~30 frames a second; the usual 200 ms tick is enough otherwise
+    if (app.marqueeMoving != app.fastTimer) {
+        app.fastTimer = app.marqueeMoving;
+        if (app.fastTimer) SetTimer(app.hwnd, 2, 33, nullptr);
+        else KillTimer(app.hwnd, 2);
+    }
 }
 
 // ------------------------------------------------------------------ dialogs
@@ -1318,7 +1414,8 @@ LRESULT CALLBACK wndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         SetTimer(hwnd, 1, 200, nullptr);
         return 0;
     case WM_TIMER:
-        onTick();
+        if (wp == 2) InvalidateRect(hwnd, nullptr, FALSE);   // the scrolling line
+        else onTick();
         return 0;
     case WM_PAINT: {
         PAINTSTRUCT ps;
@@ -1393,6 +1490,10 @@ LRESULT CALLBACK wndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         const Hit *h = hitAt(dips(GET_X_LPARAM(lp)), dips(GET_Y_LPARAM(lp)));
         if (h && h->id == H_MAP) {
             app.mapFull = !app.mapFull;
+            InvalidateRect(hwnd, nullptr, FALSE);
+        } else if (h && (h->id == H_NOW_IMAGE || h->id == H_MARQUEE)) {   // the big picture, or back
+            app.cfg.bigArt = !app.cfg.bigArt;
+            app.cfg.save();
             InvalidateRect(hwnd, nullptr, FALSE);
         } else if (h) {
             Hit copy = *h;

@@ -30,6 +30,10 @@ Then connect to the car and pick HiDef Radio Maps from the Android Auto launcher
 
 **Windows version:** HiDef Radio also runs on Windows 10 and 11 with the same RTL-SDR dongle: HD Radio and analog FM/AM, album art and logos, the traffic and weather maps with their time stamps, ad image blocking, recording (audio and IQ), favorites and the signal details. Get the installer or the zip from the [Releases](https://github.com/ferrellsl/HiDefRadio/releases) page. The dongle needs the WinUSB driver, which [Zadig](https://zadig.akeo.ie) installs. It uses the Android app's own radio engine, built for Windows; see [windows/README.md](windows/README.md). There is also a 32-bit Windows build (the `-x86` zip and installer), for older 32-bit tablets and PCs running Windows 10.
 
+**Big album art (Windows):** double-click (or double-tap) the album art and it takes over the left column. The station, HD program, song and artist move into one line above the picture, which scrolls slowly when it's too long to fit, and the favorites tiles hide to give the picture their room. Double-click the picture or the scrolling line to go back. The app remembers which view you picked. It suits a tablet used as a car radio.
+
+![HiDef Radio for Windows in big album art mode: the song scrolls above the station's picture, with the weather radar beside it](docs/images/windows-big-art.png)
+
 ---
 
 ![HiDef Radio: over-the-air FM and digital radio for RTL-SDR dongles](store/feature_graphic_1024x500.png)

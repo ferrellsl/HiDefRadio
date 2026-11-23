@@ -18,6 +18,10 @@ image blocking and a signal-details pane.
   album art moves beside the song and artist, as big as the window allows, the signal line
   moves to the top of the signal details, and the layout tightens up (since 1.0.3; 1.0.4
   makes the art bigger).
+- Big album art: double-click (or double-tap) the album art, and it fills the left column.
+  The station, program, song and artist move into one line above it, which scrolls when it
+  is too long, and the favorites hide meanwhile. Double-click the picture or that line to go
+  back. The app remembers the choice (since 1.0.5).
 - Blocks ad pictures: right-click the album art and choose "Block this picture". Settings
   clears the list.
 - Signal details: MER, BER, sync, gain, analog quieting, RDS, blend and alignment, and the
@@ -57,7 +61,7 @@ the Kotlin app (RadioService, MapFeed, ArtBlock, LogoCache, GainKeeper, Stations
 Build with MSYS2's MinGW-w64 gcc, CMake and Ninja (nrsc5 uses C99 complex numbers, which
 MSVC can't compile). From this `windows` folder:
 
-    powershell -ExecutionPolicy Bypass -File package.ps1 -Version 1.0.4
+    powershell -ExecutionPolicy Bypass -File package.ps1 -Version 1.0.5
 
 That builds `build\HiDefRadio.exe` (one static exe, no DLLs) and its `data` folder (the FCC
 station list, the base map, the DSEG7 font and the licenses, copied from the Android app),
@@ -66,7 +70,7 @@ mingw-w64-x86_64-gcc, mingw-w64-x86_64-cmake and mingw-w64-x86_64-ninja, and Inn
 
 For older and 32-bit PCs there is a 32-bit build, made the same way with `-Arch x86`:
 
-    powershell -ExecutionPolicy Bypass -File package.ps1 -Version 1.0.4 -Arch x86
+    powershell -ExecutionPolicy Bypass -File package.ps1 -Version 1.0.5 -Arch x86
 
 It builds in `build32` and names its files `HiDefRadio-Windows-<version>-x86`. It needs the
 32-bit MSYS2 packages mingw-w64-i686-gcc, mingw-w64-i686-cmake and mingw-w64-i686-ninja.
