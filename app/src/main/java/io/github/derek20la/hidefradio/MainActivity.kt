@@ -12,6 +12,8 @@ import android.content.pm.PackageManager
 import android.content.res.ColorStateList
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbManager
 import android.net.Uri
@@ -29,6 +31,7 @@ import android.text.TextPaint
 import android.util.Log
 import android.util.TypedValue
 import android.view.GestureDetector
+import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
@@ -37,7 +40,9 @@ import android.view.WindowManager
 import android.view.inputmethod.EditorInfo
 import android.widget.EditText
 import android.widget.FrameLayout
+import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
+import android.widget.PopupWindow
 import android.widget.TableRow
 import android.widget.TextView
 import android.widget.Toast
@@ -140,6 +145,15 @@ class MainActivity : AppCompatActivity() {
     // names, which one is selected). The buttons are only rebuilt when it
     // changes - not every second, which would make them flicker.
     private var shownProgramsKey = ""
+    // The HD1-HD8 picker: one chip ("HD2 ▸") opens a full-width strip with all the programs.
+    private var programPopup: PopupWindow? = null
+    private var programPopupRow: LinearLayout? = null
+    private var programStripWidth = 0        // the room the strip's buttons have inside the popup
+    private var shownPrograms: List<Program> = emptyList()
+    private var shownProgramLabels: List<String> = emptyList()
+    private var shownProgramSelected = -1
+    private var shownProgramFreqHz = 0
+    private val closeProgramPopup = Runnable { programPopup?.dismiss() }
 
     // ---- Milestone 9d: now playing ----
     // A message for when the radio isn't running ("No supported dongle found...").
@@ -365,6 +379,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        programPopup?.dismiss()
         // Build 7: the welcome card must not outlive its screen (phone turned while it is
         // open). Closed like this it does not count as read - the new screen shows it again.
         welcomeDialog?.let { it.setOnDismissListener(null); it.dismiss() }
@@ -2119,6 +2134,12 @@ class MainActivity : AppCompatActivity() {
      * Makes the row of program buttons match what the station has on the air.
      * The selected program gets a filled button, the others an outlined one.
      */
+    /**
+     * HD1-HD8. The row shows one chip with the program you hear ("HD2 ▸"), only when the
+     * station has more than one; tap it and a strip with all of them opens over the screen,
+     * reaching the right edge, so HD1-HD4 fit with their names (more scroll sideways). Picking
+     * one, touching outside, or 6 s without a touch closes it. Long-press a program = rename.
+     */
     private fun updateProgramButtons(programs: List<Program>, selected: Int, freqHz: Int) {
         // 3b: the name on each button - yours if you renamed it, else the station's.
         val labels = programs.map { ProgramNames.label(this, freqHz, it, station) }
@@ -2127,43 +2148,142 @@ class MainActivity : AppCompatActivity() {
             " sel=$selected"
         if (key == shownProgramsKey) return                  // nothing changed
         shownProgramsKey = key
-
-        // If any button has a name (2 lines, e.g. "HD1" + "Rock"), make ALL of
-        // them 2 lines tall, so the row lines up.
-        val lines = if (labels.any { it.isNotEmpty() }) 2 else 1
+        shownPrograms = programs
+        shownProgramLabels = labels
+        shownProgramSelected = selected
+        shownProgramFreqHz = freqHz
 
         val row = binding.programRow
         row.removeAllViews()
-        for ((i, program) in programs.withIndex()) {
-            val label = labels[i]
-            // Outlined style for the programs that aren't playing.
-            val style = if (program.number == selected)
-                com.google.android.material.R.attr.materialButtonStyle
-            else
-                com.google.android.material.R.attr.materialButtonOutlinedStyle
+        if (programs.size < 2) {                             // HD1 only, or no HD: nothing to pick
+            programPopup?.dismiss()
+            return
+        }
+        val current = programs.firstOrNull { it.number == selected }
+        val chip = MaterialButton(this, null, com.google.android.material.R.attr.materialButtonStyle)
+        chip.isAllCaps = false
+        chip.minWidth = 0
+        chip.minimumWidth = 0
+        chip.setPaddingRelative(dpToPx(16), chip.paddingTop, dpToPx(8), chip.paddingBottom)
+        chip.text = current?.hdName ?: "HD"
+        // the same chevron as the tuning buttons, after the text: "HD1 >"
+        chip.icon = ContextCompat.getDrawable(this, R.drawable.ic_chevron_right)
+        chip.iconGravity = MaterialButton.ICON_GRAVITY_TEXT_END
+        chip.iconSize = dpToPx(26)
+        chip.iconPadding = dpToPx(4)
+        chip.contentDescription = getString(R.string.program_picker)
+        chip.setOnClickListener { showProgramPopup(chip) }
+        chip.setOnLongClickListener {
+            if (current != null) showRenameDialog(freqHz, current)
+            true
+        }
+        row.addView(chip, LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        programPopupRow?.let { fillProgramStrip(it) }        // open: show the change there too
+    }
+
+    /** The programs' buttons in the strip: all the same width when they fit, else they scroll. */
+    private fun fillProgramStrip(strip: LinearLayout) {
+        strip.removeAllViews()
+        val labels = shownProgramLabels
+        val lines = if (labels.any { it.isNotEmpty() }) 2 else 1
+        var selectedButton: View? = null
+        for ((i, program) in shownPrograms.withIndex()) {
+            val label = labels.getOrElse(i) { "" }
+            val sel = program.number == shownProgramSelected
+            val style = if (sel) com.google.android.material.R.attr.materialButtonStyle
+                        else com.google.android.material.R.attr.materialButtonOutlinedStyle
             val button = MaterialButton(this, null, style)
             button.isAllCaps = false                        // keep "TikTok Radio" as sent
-            // 9h: no 88 dp minimum width and less padding -> "HD1" is ~56 dp wide,
-            // so HD1-HD4 fit next to the ⚙ without being cut off.
-            button.minWidth = 0
-            button.minimumWidth = 0
+            button.minWidth = dpToPx(96)
+            button.minimumWidth = dpToPx(96)
             button.setPaddingRelative(dpToPx(14), button.paddingTop, dpToPx(14), button.paddingBottom)
             button.minLines = lines
-            // "HD2" on top, the name (if any) underneath.
-            button.text = if (label.isEmpty()) program.hdName
-                          else "${program.hdName}\n$label"
-            button.setOnClickListener { selectProgram(program.number) }
-            // 3b: long-press = rename. "true" = we handled it (no normal click after).
+            button.maxLines = lines
+            button.ellipsize = android.text.TextUtils.TruncateAt.END
+            button.text = if (label.isEmpty()) program.hdName else "${program.hdName}\n$label"
+            button.setOnClickListener {
+                programPopup?.dismiss()
+                selectProgram(program.number)
+            }
             button.setOnLongClickListener {
-                showRenameDialog(freqHz, program)
+                programPopup?.dismiss()
+                showRenameDialog(shownProgramFreqHz, program)
                 true
             }
-
             val params = LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-            params.marginEnd = dpToPx(6)                    // 9h: was 8
-            row.addView(button, params)
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+            params.marginEnd = if (i < shownPrograms.size - 1) dpToPx(8) else 0
+            strip.addView(button, params)
+            if (sel) selectedButton = button
         }
+        // all the same width (the widest one's) when they fit side by side; else each its own, scrolling
+        val gaps = dpToPx(8) * (strip.childCount - 1)
+        var widest = 0
+        for (i in 0 until strip.childCount) {
+            val c = strip.getChildAt(i)
+            c.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED)
+            widest = maxOf(widest, c.measuredWidth)
+        }
+        val equal = programStripWidth > 0 && widest * strip.childCount + gaps <= programStripWidth
+        for (i in 0 until strip.childCount) {
+            val lp = strip.getChildAt(i).layoutParams as LinearLayout.LayoutParams
+            lp.width = if (equal) 0 else ViewGroup.LayoutParams.WRAP_CONTENT
+            lp.weight = if (equal) 1f else 0f
+        }
+        val sv = strip.parent as? HorizontalScrollView
+        val b = selectedButton
+        if (sv != null && b != null) sv.post { sv.smoothScrollTo(maxOf(0, b.left - (sv.width - b.width) / 2), 0) }
+    }
+
+    /** Opens the strip over the screen, starting where the chip is and reaching the right edge. */
+    private fun showProgramPopup(chip: View) {
+        programPopup?.dismiss()
+        val root = binding.root
+        val rootAt = IntArray(2).also { root.getLocationInWindow(it) }
+        val chipAt = IntArray(2).also { chip.getLocationInWindow(it) }
+        val left = chipAt[0] - dpToPx(10)
+        val width = rootAt[0] + root.width - root.paddingRight - left
+
+        val strip = LinearLayout(this)
+        strip.orientation = LinearLayout.HORIZONTAL
+        strip.gravity = Gravity.CENTER_VERTICAL
+        val scroll = HorizontalScrollView(this)
+        scroll.isFillViewport = true
+        scroll.isHorizontalScrollBarEnabled = false
+        scroll.isHorizontalFadingEdgeEnabled = true       // a faded edge shows there are more
+        scroll.setFadingEdgeLength(dpToPx(32))
+        scroll.addView(strip, ViewGroup.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        val card = MaterialCardView(this)
+        card.radius = dpToPx(14).toFloat()
+        card.cardElevation = dpToPx(8).toFloat()
+        card.setContentPadding(dpToPx(10), dpToPx(8), dpToPx(10), dpToPx(8))
+        card.addView(scroll)
+
+        val popup = PopupWindow(card, width, ViewGroup.LayoutParams.WRAP_CONTENT, true)
+        popup.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        popup.isOutsideTouchable = true
+        popup.elevation = dpToPx(8).toFloat()
+        popup.setTouchInterceptor { _, _ ->                   // any touch: 6 s more before it closes
+            root.removeCallbacks(closeProgramPopup)
+            root.postDelayed(closeProgramPopup, PROGRAM_POPUP_MS)
+            false
+        }
+        popup.setOnDismissListener {
+            root.removeCallbacks(closeProgramPopup)
+            if (programPopup === popup) {
+                programPopup = null
+                programPopupRow = null
+            }
+        }
+        programPopup = popup
+        programPopupRow = strip
+        programStripWidth = width - dpToPx(20)              // less the card's padding
+        fillProgramStrip(strip)
+        // its top a little above the chip's, so the buttons sit where the chip is
+        popup.showAtLocation(root, Gravity.TOP or Gravity.START, left, chipAt[1] - dpToPx(8))
+        root.postDelayed(closeProgramPopup, PROGRAM_POPUP_MS)
     }
 
     /**
@@ -2411,5 +2531,6 @@ class MainActivity : AppCompatActivity() {
         private const val KEY_PANE_DETAILS_OPEN = "pane_details_open"
         private const val KEY_DEBUG_OPEN = "debug_open"
         private const val KEY_BIG_ART = "big_art"
+        private const val PROGRAM_POPUP_MS = 6_000L     // the HD1-HD8 strip closes after this long untouched
     }
 }

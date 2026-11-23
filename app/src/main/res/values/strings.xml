@@ -63,6 +63,7 @@
     <string name="two_stations_tap_analog">⚠ Two stations share this frequency - tap for the analog</string>
     <!-- Build 10: the HD stands alone (the analog on this frequency is another station's) and has dropped out -->
     <string name="signal_silent">HD dropout - silence (%1$d s)</string>
+    <string name="program_picker">Choose HD1, HD2…</string>
     <string name="now_image">Album art or station logo</string>
     <string name="station_logo">Station logo</string>
 
