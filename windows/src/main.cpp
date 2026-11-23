@@ -62,7 +62,7 @@ uint32_t signalColor(sigtext::Color c) {
 enum HitId {
     H_NONE, H_TUNE_DOWN, H_TUNE_UP, H_VFD, H_PAUSE, H_POWER, H_RECORD, H_SETTINGS, H_VOLUME, H_PROGRAM, H_PRESET,
     H_STAR, H_SIGNAL, H_OTHER_HD, H_DETAILS_HEAD, H_TAB_TRAFFIC, H_TAB_WEATHER, H_MAP, H_PLAY, H_SLIDER,
-    H_NOW_IMAGE, H_START, H_DETAILS, H_MARQUEE
+    H_NOW_IMAGE, H_START, H_DETAILS, H_MARQUEE, H_HD_CHIP, H_HD_STRIP
 };
 struct Hit {
     D2D1_RECT_F r;
@@ -122,6 +122,9 @@ struct App {
     long long marqueeStartMs = 0;          // when that text first showed (the scroll starts from it)
     bool marqueeMoving = false;            // it is too long to fit, so it scrolls (a faster timer runs)
     bool fastTimer = false;
+    bool programsOpen = false;             // the HD1-HD8 strip is open over the window (click the chip)
+    long long programsCloseMs = 0;         // ...until then, unless something is clicked
+    D2D1_RECT_F hdChip{};                  // where the "HD1 ❯" chip is
     int radarFrame = 0;
     bool radarPlaying = false;
     long long radarNextMs = 0;
@@ -445,34 +448,59 @@ void drawTopBar(float W, int freqHz) {
     button(D2D1::RectF(W - 72, top + 14, W - 16, top + bh - 14), "\xE2\x9A\x99", H_SETTINGS, 0, 24, C_SURFACE, C_TEXT);   // ⚙
 }
 
-// HD1-HD8 across the left column, wrapping to a new row; returns the height used.
+// HD1-HD8: one chip with the program you hear ("HD1 ❯"), only when the station has more
+// than one; a click opens a strip over the window with all of them (drawProgramStrip).
+// Returns the height used.
 float drawPrograms(float left, float right, float y) {
-    if (app.programs.empty()) return 0;
-    float x = left, top = y;
+    (void)right;
+    if (app.programs.size() < 2) {
+        app.programsOpen = false;
+        return 0;
+    }
+    std::string hd = "HD";
+    for (const Program &p : app.programs) if (p.number == app.program) hd = p.hdName();
+    IDWriteTextFormat *f = format(18, DWRITE_FONT_WEIGHT_SEMI_BOLD);
+    float tw = textWidth(hd, f);
+    D2D1_RECT_F r = D2D1::RectF(left, y, left + tw + 64, y + 48);
+    fill(r, C_BUTTON, 1, 10);
+    text(hd, D2D1::RectF(r.left + 18, r.top, r.left + 18 + tw + 4, r.bottom), f, C_BUTTON_TEXT, 1, LEFT, false, true);
+    text("\xE2\x9D\xAF", D2D1::RectF(r.right - 36, r.top, r.right - 10, r.bottom), format(22, DWRITE_FONT_WEIGHT_BOLD),
+         C_BUTTON_TEXT, 1, CENTER, false, true);   // ❯
+    addHit(r, H_HD_CHIP);
+    app.hdChip = r;
+    return 58;
+}
+
+// The open strip: from the chip to the window's right edge, over everything, with every
+// program the same width and its name ("…" when too long).
+void drawProgramStrip(float W) {
+    if (!app.programsOpen || !running() || app.programs.size() < 2) {
+        app.programsOpen = false;
+        return;
+    }
+    D2D1_RECT_F box = D2D1::RectF(app.hdChip.left - 10, app.hdChip.top - 8, W - 16, app.hdChip.top + 56 + 8);
+    fill(D2D1::RectF(box.left + 3, box.top + 4, box.right + 3, box.bottom + 4), 0x000000, 0.5f, 14);   // shadow
+    fill(box, 0x2A2D2E, 1, 14);
+    stroke(box, C_TILE_EDGE, 0.5f, 14, 1);
+    addHit(box, H_HD_STRIP);                 // a click between the tiles keeps it open
     int n = (int)app.programs.size();
-    float fitW = (right - left - (n - 1) * 10.0f) / n;   // each tile's share of one row
+    const float gap = 8;
+    float x = box.left + 10, w = (box.right - box.left - 20 - gap * (n - 1)) / n;
     for (const Program &p : app.programs) {
-        std::string name = p.nameFor(app.shown.station());
-        float w = std::max(84.0f, std::min(220.0f, textWidth(name, format(12)) + 28));
-        if (app.compact && fitW >= 84) w = std::min(w, fitW);
-        if (x + w > right && x > left) {
-            x = left;
-            y += 58;
-        }
-        D2D1_RECT_F r = D2D1::RectF(x, y, x + w, y + 48);
+        D2D1_RECT_F r = D2D1::RectF(x, box.top + 8, x + w, box.bottom - 8);
         bool sel = p.number == app.program;
         fill(r, sel ? C_BUTTON : C_SURFACE, 1, 10);
-        if (!sel) stroke(r, C_TILE_EDGE, 0.35f, 10, 1);
+        if (!sel) stroke(r, C_TILE_EDGE, 0.5f, 10, 1);
         uint32_t fg = sel ? C_BUTTON_TEXT : C_TEXT;
+        std::string name = p.nameFor(app.shown.station());
         if (name.empty()) text(p.hdName(), r, format(18, DWRITE_FONT_WEIGHT_SEMI_BOLD), fg, 1, CENTER, false, true);
         else {
-            text(p.hdName(), D2D1::RectF(r.left, r.top + 3, r.right, r.top + 26), format(16, DWRITE_FONT_WEIGHT_SEMI_BOLD), fg, 1, CENTER, false, true);
-            text(name, D2D1::RectF(r.left + 6, r.top + 25, r.right - 6, r.bottom - 3), format(12), fg, 0.85f, CENTER, false, true);
+            text(p.hdName(), D2D1::RectF(r.left, r.top + 4, r.right, r.top + 27), format(16, DWRITE_FONT_WEIGHT_SEMI_BOLD), fg, 1, CENTER, false, true);
+            text(name, D2D1::RectF(r.left + 8, r.top + 26, r.right - 8, r.bottom - 4), format(13), fg, 0.85f, CENTER, false, true);
         }
         addHit(r, H_PROGRAM, p.number);
-        x += w + 10;
+        x += w + gap;
     }
-    return y + 58 - top;
 }
 
 // The favorites as tiles across the left column, wrapping; returns the height used.
@@ -947,6 +975,7 @@ void paint() {
         else if (running()) drawMaps(pane, head.right + (app.compact ? 10 : 24), y);
         else text("The traffic and weather maps show here while the radio plays.", pane, format(16), C_DIM, 1, LEFT, true);
     }
+    drawProgramStrip(W);                     // over everything else, when open
     // the toast: a message at the bottom for a few seconds
     if (!app.toast.empty() && nowMs() < app.toastUntilMs) {
         IDWriteTextFormat *tf = format(16);
@@ -1323,7 +1352,13 @@ void click(const Hit &h, float x, float y) {
     case H_RECORD: toggleRecording(); break;
     case H_SETTINGS: DialogBoxW(GetModuleHandleW(nullptr), MAKEINTRESOURCEW(IDD_SETTINGS), app.hwnd, settingsProc); break;
     case H_VOLUME: setVolumeFromX(x, h.r); break;
+    case H_HD_CHIP:
+        app.programsOpen = !app.programsOpen;
+        app.programsCloseMs = nowMs() + 6000;
+        break;
+    case H_HD_STRIP: app.programsCloseMs = nowMs() + 6000; break;
     case H_PROGRAM:
+        app.programsOpen = false;
         if (running()) {
             app.radio->selectProgram(h.arg);
             app.program = h.arg;
@@ -1386,6 +1421,7 @@ void onTick() {
             app.radarNextMs = nowMs() + (app.radarFrame == n - 1 ? 1800 : 600);
         }
     }
+    if (app.programsOpen && nowMs() > app.programsCloseMs) app.programsOpen = false;   // 6 s untouched
     if (nowMs() - app.lastSaveMs > 30000) {    // keep the last station even if Windows shuts down hard
         app.lastSaveMs = nowMs();
         app.cfg.save();
@@ -1449,7 +1485,7 @@ LRESULT CALLBACK wndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
             GetCursorPos(&p);
             ScreenToClient(hwnd, &p);
             const Hit *h = hitAt(dips(p.x), dips(p.y));
-            bool hand = h && h->id != H_DETAILS && h->id != H_MAP;
+            bool hand = h && h->id != H_DETAILS && h->id != H_MAP && h->id != H_HD_STRIP;
             SetCursor(LoadCursorW(nullptr, hand ? IDC_HAND : IDC_ARROW));
             return TRUE;
         }
@@ -1457,6 +1493,13 @@ LRESULT CALLBACK wndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     case WM_LBUTTONDOWN: {
         float x = dips(GET_X_LPARAM(lp)), y = dips(GET_Y_LPARAM(lp));
         const Hit *h = hitAt(x, y);
+        // the HD strip is open: a click anywhere else only closes it
+        if (app.programsOpen && !(h && (h->id == H_PROGRAM || h->id == H_HD_STRIP || h->id == H_HD_CHIP))) {
+            app.programsOpen = false;
+            app.pressed = Hit{{0, 0, 0, 0}, H_NONE, 0};
+            InvalidateRect(hwnd, nullptr, FALSE);
+            return 0;
+        }
         app.pressed = h ? *h : Hit{{0, 0, 0, 0}, H_NONE, 0};
         if (h && (h->id == H_VOLUME || h->id == H_SLIDER)) {
             app.dragging = true;
@@ -1533,7 +1576,8 @@ LRESULT CALLBACK wndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         case VK_RIGHT: case VK_UP: step(true); break;
         case VK_SPACE: if (running()) app.radio->setPaused(!app.radio->paused()); break;
         case VK_ESCAPE:
-            if (app.mapFull) app.mapFull = false;
+            if (app.programsOpen) app.programsOpen = false;
+            else if (app.mapFull) app.mapFull = false;
             else if (app.winFull) toggleWindowFull();
             break;
         case VK_F11: toggleWindowFull(); break;

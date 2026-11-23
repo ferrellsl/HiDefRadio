@@ -36,6 +36,11 @@ image blocking and a signal-details pane.
   (60 s unless you choose otherwise). Changing station or stopping the radio also ends a
   recording and saves it. Files go to Music\HiDef Radio unless you pick another folder.
 
+- HD1-HD8: when a station has more than one program, a button shows the one you hear
+  ("HD1 ❯"). Click it and a strip with all of them opens across the window, each with
+  its name; click one to switch. Clicking anywhere else, Esc, or a few seconds untouched
+  closes it (since 1.0.6).
+
 Keys: Left/Right step the frequency; T types one; 1-8 pick HD1-HD8; Space pauses;
 R records; F adds or removes a favorite; D shows or hides the details; F11 fills the screen.
 The mouse wheel over the frequency display tunes.
@@ -61,7 +66,7 @@ the Kotlin app (RadioService, MapFeed, ArtBlock, LogoCache, GainKeeper, Stations
 Build with MSYS2's MinGW-w64 gcc, CMake and Ninja (nrsc5 uses C99 complex numbers, which
 MSVC can't compile). From this `windows` folder:
 
-    powershell -ExecutionPolicy Bypass -File package.ps1 -Version 1.0.5
+    powershell -ExecutionPolicy Bypass -File package.ps1 -Version 1.0.6
 
 That builds `build\HiDefRadio.exe` (one static exe, no DLLs) and its `data` folder (the FCC
 station list, the base map, the DSEG7 font and the licenses, copied from the Android app),
@@ -70,7 +75,7 @@ mingw-w64-x86_64-gcc, mingw-w64-x86_64-cmake and mingw-w64-x86_64-ninja, and Inn
 
 For older and 32-bit PCs there is a 32-bit build, made the same way with `-Arch x86`:
 
-    powershell -ExecutionPolicy Bypass -File package.ps1 -Version 1.0.5 -Arch x86
+    powershell -ExecutionPolicy Bypass -File package.ps1 -Version 1.0.6 -Arch x86
 
 It builds in `build32` and names its files `HiDefRadio-Windows-<version>-x86`. It needs the
 32-bit MSYS2 packages mingw-w64-i686-gcc, mingw-w64-i686-cmake and mingw-w64-i686-ninja.

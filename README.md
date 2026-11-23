@@ -54,7 +54,7 @@ No root, no computer, no internet connection needed (a dongle on another compute
 
 ### What it receives
 
-- **HD Radio on FM**: HD1 and the extra programs (HD2, HD3, HD4 ... up to eight). When a station carries more than one, a button with the one you hear ("HD1 ❯") appears; tap it and a strip with all of them opens across the screen, each with its name. Pick one, or touch outside the strip to close it (it also closes by itself after a few seconds). Hold a finger on a program to rename it.
+- **HD Radio on FM**: HD1 and the extra programs (HD2, HD3, HD4 ... up to eight). When a station carries more than one, a button with the one you hear ("HD1 ❯") appears; tap it and a strip with all of them opens across the screen, each with its name. Pick one, or touch outside the strip to close it (it also closes by itself after a few seconds). Hold a finger on a program to rename it. Windows works the same way with clicks (since 1.0.6).
 - **Analog FM in stereo**, with a stereo-to-mono blend as the signal gets noisy.
 - **RDS / RBDS** on analog FM: call letters, program type, RadioText, and song title and artist where the station sends them.
 - **HD Radio on AM**. It needs a dongle that can tune AM, such as the RTL-SDR Blog V4.
