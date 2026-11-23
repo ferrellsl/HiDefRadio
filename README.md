@@ -236,14 +236,6 @@ FM stereo has a blend of its own: full stereo above 36 dB of quieting, mono belo
 - AM HD has had little on-air testing: one station (KMZT 1260 kHz in Los Angeles) heard on the phone with an RTL-SDR Blog V4, plus off-air recordings run through the app's engine (`tools/harness`). AM with a V3 has not been tried yet.
 - Most testing so far has been in the Los Angeles area. Testers have run it in other places and on other phones and dongles too, and more reports are welcome (see [Feedback](#feedback)).
 
-## Plans
-
-- **1.1** (done): analog AM with the blend and C-QUAM AM stereo, NRSC AM de-emphasis, a stereo dot on the frequency display, export / import of favorites.
-- **1.2** (done): an rtl_tcp network source - the dongle on a PC or Raspberry Pi, the phone on Wi-Fi; our nrsc5 fork (a faster HD search, the right left / right in HD audio, MER named by its true sideband); a screen rotation setting.
-- **1.2.1** (done): the blend on stations whose analog is processed very differently from their HD (it aligns sooner, stays aligned, and comes back to the HD after a dropout); rtl_tcp on AM: the Gain row says so when the server's dongle ignores the gain (a V3 in direct sampling); rtl_tcp on Android 17: asks for the new local network permission ("Nearby devices"), without which the server can't be reached.
-- **1.3**: recording - audio (AAC) and IQ (.cu8, with a time limit), to a folder you choose; a dongle plugged into the phone wins over rtl_tcp.
-- **Later**: a DX log, seek and scan, a time-shift pause.
-
 ## Credits and licenses
 
 OpenDial stands on the shoulders of these projects, starting with [HiDef Radio by derek20la](https://github.com/derek20la/HiDefRadio):
