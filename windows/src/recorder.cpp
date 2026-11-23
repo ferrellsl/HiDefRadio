@@ -176,7 +176,12 @@ namespace recordings {
 std::wstring defaultFolder() {
     PWSTR p = nullptr;
     std::wstring r;
-    if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_Music, 0, nullptr, &p))) r = std::wstring(p) + L"\\HiDef Radio";
+    if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_Music, 0, nullptr, &p))) {
+        // Music\OpenDial; but keep using Music\HiDef Radio if recordings from before the rename are there
+        std::wstring old = std::wstring(p) + L"\\HiDef Radio";
+        DWORD a = GetFileAttributesW(old.c_str());
+        r = a != INVALID_FILE_ATTRIBUTES && (a & FILE_ATTRIBUTE_DIRECTORY) ? old : std::wstring(p) + L"\\OpenDial";
+    }
     CoTaskMemFree(p);
     return r;
 }
@@ -241,7 +246,7 @@ std::string Recorder::start(int what, const std::wstring &folder, int iqLimitS, 
 
     if (wantIq) {
         iqLimitS_ = iqLimitS;
-        std::wstring path = folder + L"\\" + widen(fmt("HiDefRadio_%s_%s_%dsps.cu8", time.c_str(), freq.c_str(), IQ_RATE));
+        std::wstring path = folder + L"\\" + widen(fmt("OpenDial_%s_%s_%dsps.cu8", time.c_str(), freq.c_str(), IQ_RATE));
         int fd = _wopen(path.c_str(), _O_WRONLY | _O_CREAT | _O_TRUNC | _O_BINARY | _O_SEQUENTIAL, _S_IREAD | _S_IWRITE);
         if (fd < 0) problem = "Couldn't open the recording file for writing.";
         else {

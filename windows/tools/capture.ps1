@@ -14,7 +14,7 @@ public static class W {
 }
 "@
 [W]::SetProcessDPIAware() | Out-Null
-$h = [W]::FindWindow($Class, $null); if ($h -eq [IntPtr]::Zero) { $p = Get-Process HiDefRadio -ErrorAction SilentlyContinue | Select-Object -First 1; if ($p) { $h = $p.MainWindowHandle } }
+$h = [W]::FindWindow($Class, $null); if ($h -eq [IntPtr]::Zero) { $p = Get-Process OpenDial -ErrorAction SilentlyContinue | Select-Object -First 1; if ($p) { $h = $p.MainWindowHandle } }
 if ($h -eq [IntPtr]::Zero) { Write-Output "window not found"; exit 1 }
 $r = New-Object W+RECT
 [W]::GetWindowRect($h, [ref]$r) | Out-Null

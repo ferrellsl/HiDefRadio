@@ -86,7 +86,7 @@ class Recorder(private val context: Context, private val player: AudioPlayer) {
 
         if (wantIq) {
             iqLimitS = Settings.recIqLimitS(context)
-            val name = "HiDefRadio_${time}_${freq}_${IQ_RATE}sps.cu8"
+            val name = "OpenDial_${time}_${freq}_${IQ_RATE}sps.cu8"
             val uri = Recordings.create(context, folder, name, MIME_IQ)
             if (uri == null) {
                 problem = context.getString(R.string.rec_folder_gone)
@@ -117,7 +117,7 @@ class Recorder(private val context: Context, private val player: AudioPlayer) {
         if (wantAudio && problem == null) {
             val tag = clean(station).let { if (it.isEmpty()) "" else "_$it" } +
                       (if (program > 0) "_HD${program + 1}" else "")
-            val name = "HiDefRadio_${time}_${freq}$tag.aac"
+            val name = "OpenDial_${time}_${freq}$tag.aac"
             val uri = Recordings.create(context, folder, name, MIME_AUDIO)
             val stream = try {
                 uri?.let { context.contentResolver.openOutputStream(it, "w") }

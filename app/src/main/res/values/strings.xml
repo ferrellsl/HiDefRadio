@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">HiDef Radio Maps</string>
+    <string name="app_name">OpenDial</string>
 
     <!-- Milestone 9a: tuning -->
     <string name="tune">Tune</string>
@@ -25,7 +25,7 @@
     <string name="show_debug">Show debug info</string>
     <string name="hide_debug">Hide debug info</string>
     <string name="debug_copied">Debug info copied</string>   <!-- build 36: long-press the debug text -->
-    <string name="debug_copied_label">HiDef Radio debug info</string>
+    <string name="debug_copied_label">OpenDial debug info</string>
     <!-- Build 12: the speed test button in the debug info -->
     <string name="speed_test">Run speed test</string>
     <string name="art_block_title">Block this picture?</string>
@@ -137,10 +137,10 @@
     <string name="hint_tcp_problem">⚠ %1$s</string>
     <!-- Build 33: Android 17+ local network permission (LocalNetwork.kt) -->
     <string name="local_network_title">Local network access</string>
-    <string name="local_network_why">Your rtl_tcp server (%1$s) is on your home network, and Android asks before an app may connect to devices there.\n\nHiDef Radio uses this for one thing only: the rtl_tcp server you set. Android lists it under \"Nearby devices\".</string>
+    <string name="local_network_why">Your rtl_tcp server (%1$s) is on your home network, and Android asks before an app may connect to devices there.\n\nOpenDial uses this for one thing only: the rtl_tcp server you set. Android lists it under \"Nearby devices\".</string>
     <string name="local_network_continue">Continue</string>
     <string name="local_network_not_now">Not now</string>
-    <string name="tcp_local_network_off">Local network access is off, so the rtl_tcp server can\'t be reached. Allow it in Android\'s settings: Apps &gt; HiDef Radio &gt; Permissions &gt; Nearby devices.</string>
+    <string name="tcp_local_network_off">Local network access is off, so the rtl_tcp server can\'t be reached. Allow it in Android\'s settings: Apps &gt; OpenDial &gt; Permissions &gt; Nearby devices.</string>
     <string name="tcp_local_network_off_short">Local network access is off</string>
     <string name="open_app_settings">Settings</string>
     <string name="setting_am_deemph">AM de-emphasis (NRSC)</string>   <!-- build 21 -->
@@ -190,7 +190,8 @@
     <string name="clear_nothing">Nothing selected</string>
     <string name="settings_about">About</string>
     <!-- Build 7: the welcome card - shown at the first start, and under Settings > About -->
-    <string name="welcome_title">Welcome to HiDef Radio</string>
+    <string name="notification_channel_desc">Shows while OpenDial is playing</string>
+    <string name="welcome_title">Welcome to OpenDial</string>
     <string name="welcome_text">1. Plug an RTL-SDR dongle into the phone with a USB-OTG adapter, and connect an antenna.\n\n2. Tap the frequency display to type in an FM or AM station, for example 101.1 or 550.\n\n3. The arrows step through the band. The star saves a favorite.\n\n4. The sound starts in analog. On a station with HD Radio it blends to HD automatically, after about ten seconds on FM and about twenty on AM.\n\nYou can read this again under Settings > About > Getting started.</string>
     <string name="welcome_ok">Got it</string>
     <string name="about_welcome">Getting started</string>
@@ -201,8 +202,8 @@
     <string name="about_license">Free software (GNU GPL v3 or later)</string>
     <string name="about_license_summary">Comes with ABSOLUTELY NO WARRANTY. Tap to read the license.</string>
     <string name="about_source">Source code</string>
-    <string name="source_url" translatable="false">https://github.com/derek20la/HiDefRadio</string>
-    <string name="source_url_short" translatable="false">github.com/derek20la/HiDefRadio</string>
+    <string name="source_url" translatable="false">https://github.com/ferrellsl/OpenDial</string>
+    <string name="source_url_short" translatable="false">github.com/ferrellsl/OpenDial</string>
     <string name="about_licenses">Open-source licenses</string>
     <string name="about_licenses_summary">nrsc5, librtlsdr, libusb, FFTW, FAAD2, DSEG font, AndroidX</string>
     <!-- 13b: the built-in station list. %1$s = "FCC data of 2026-10-01" -->
@@ -211,17 +212,17 @@
     <!-- 14c: the privacy policy (Settings > About). The full text is the web page at privacy_url. -->
     <string name="about_privacy">Privacy policy</string>
     <string name="about_privacy_summary">Collects nothing. Tap to read.</string>
-    <string name="about_privacy_text">HiDef Radio does not collect, send or share any personal data.\n\nYour favorites, station names, settings, station logos and remembered tuner gains are kept on this phone only. Settings > Clear saved data, clearing the app\'s storage or uninstalling removes them. If Android\'s own backup is switched on, Android may include them in the backup in your Google account.\n\nNo account, no ads, no tracking.\n\nThe full policy: %1$s</string>
+    <string name="about_privacy_text">OpenDial does not collect, send or share any personal data.\n\nYour favorites, station names, settings, station logos and remembered tuner gains are kept on this phone only. Settings > Clear saved data, clearing the app\'s storage or uninstalling removes them. If Android\'s own backup is switched on, Android may include them in the backup in your Google account.\n\nNo account, no ads, no tracking.\n\nThe full policy: %1$s</string>
     <string name="about_privacy_open">Open the web page</string>
-    <string name="privacy_url" translatable="false">https://github.com/derek20la/hidefradio-privacy</string>
-    <string name="privacy_url_short" translatable="false">github.com/derek20la/hidefradio-privacy</string>
+    <string name="privacy_url" translatable="false">https://github.com/ferrellsl/OpenDial/blob/main/PRIVACY.md</string>
+    <string name="privacy_url_short" translatable="false">github.com/ferrellsl/OpenDial/blob/main/PRIVACY.md</string>
     <string name="no_browser">No web browser found</string>
     <string name="close">Close</string>
 
     <!-- 9f: the list under "Open-source licenses". Same order as license_files. -->
     <string-array name="license_names">
         <item>Credits and notices</item>
-        <item>GNU GPL v3 (HiDef Radio, nrsc5)</item>
+        <item>GNU GPL v3 (OpenDial, HiDef Radio, nrsc5)</item>
         <item>GNU GPL v2 (librtlsdr, FFTW, FAAD2)</item>
         <item>GNU LGPL v2.1 (libusb)</item>
         <item>Apache 2.0 (AndroidX, Material, Kotlin)</item>
@@ -421,7 +422,7 @@
     <string name="setting_rec_help">Tap ⏺ on the main screen to start, and again to stop. Changing station or stopping the radio also ends a recording and saves it. Audio is saved as AAC (.aac), about 1 MB a minute.</string>
     <string name="setting_rec_iq_help">IQ files grow rapidly in size: about 180 MB a minute, so an IQ recording stops by itself after the limit above. IQ is saved untouched as .cu8 (8-bit I/Q, 1,488,375 samples a second), which nrsc5 plays back with -r and most SDR programs can open.</string>
     <string name="rec_choose_folder_title">Where should recordings go?</string>
-    <string name="rec_choose_folder_message">Choose a folder for your recordings (or make a new one, e.g. \"HiDef Radio\" in Music). The app can only save files in the folder you choose. You can change it later in Settings &gt; Recording.</string>
+    <string name="rec_choose_folder_message">Choose a folder for your recordings (or make a new one, e.g. \"OpenDial\" in Music). The app can only save files in the folder you choose. You can change it later in Settings &gt; Recording.</string>
     <string name="rec_choose_folder">Choose folder</string>
     <string name="rec_folder_set">Recordings go to %1$s.</string>
     <string name="rec_folder_refused">Android didn\'t allow that folder. Please choose another one.</string>

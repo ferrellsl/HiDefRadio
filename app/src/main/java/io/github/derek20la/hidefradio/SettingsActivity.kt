@@ -160,7 +160,7 @@ class SettingsActivity : AppCompatActivity() {
                 if (Presets.load(requireContext()).isEmpty())
                     Toast.makeText(requireContext(), R.string.export_none, Toast.LENGTH_SHORT).show()
                 else
-                    exportLauncher.launch("HiDefRadio-favorites-${today()}.txt")
+                    exportLauncher.launch("OpenDial-favorites-${today()}.txt")
                 true
             }
             // "Import favorites" → the system's "Open" screen (text files; "*/*" as well, because

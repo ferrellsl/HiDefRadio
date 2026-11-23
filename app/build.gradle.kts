@@ -35,8 +35,8 @@ android {
         // versionCode = the BUILD NUMBER: goes up by one with every step that changes the app,
         // and must go up with every upload to Google Play. versionName is what people see.
         // Settings > About shows both: "Version 1.0-beta1 (build 1)".
-        versionCode = 46
-        versionName = "1.3.1-maps9"
+        versionCode = 47
+        versionName = "2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -61,7 +61,7 @@ android {
 
     buildTypes {
         // The build Android Studio puts on the phone while developing. It is a SEPARATE app
-        // ("HiDef Radio dev", id ...hidefradio.debug), so it can sit next to the version from
+        // ("OpenDial dev", id ...hidefradio.debug), so it can sit next to the version from
         // Google Play, which is signed with another key and could not be installed over it.
         getByName("debug") {
             applicationIdSuffix = ".debug"

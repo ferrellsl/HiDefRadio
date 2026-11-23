@@ -1,6 +1,6 @@
-# Builds HiDef Radio for Windows and makes the release files in windows\dist:
-#   HiDefRadio-Windows-<version>.zip         (unzip and run HiDefRadio.exe)
-#   HiDefRadio-Windows-<version>-Setup.exe   (installer)
+# Builds OpenDial for Windows and makes the release files in windows\dist:
+#   OpenDial-Windows-<version>.zip         (unzip and run OpenDial.exe)
+#   OpenDial-Windows-<version>-Setup.exe   (installer)
 # -Arch x86 makes the 32-bit build instead (in build32, with "-x86" in the file names).
 # Needs MSYS2 (C:\msys64) with mingw-w64-x86_64-gcc, cmake and ninja (for x86:
 # mingw-w64-i686-gcc, cmake and ninja), and Inno Setup 6.
@@ -20,12 +20,12 @@ if ($LASTEXITCODE) { throw "cmake configure failed" }
 ninja -C $build HiDefRadio
 if ($LASTEXITCODE) { throw "build failed" }
 
-$name = "HiDefRadio-Windows-$Version$suffix"
+$name = "OpenDial-Windows-$Version$suffix"
 $dist = "$here\dist"
 $out = "$dist\$name"
 if (Test-Path $out) { Remove-Item -Recurse -Force $out }
 New-Item -ItemType Directory -Force $out | Out-Null
-Copy-Item "$build\HiDefRadio.exe" $out
+Copy-Item "$build\OpenDial.exe" $out
 Copy-Item -Recurse "$build\data" "$out\data"
 Copy-Item "$here\README.md" "$out\README.txt"
 

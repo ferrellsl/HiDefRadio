@@ -1264,7 +1264,7 @@ class RadioService : MediaBrowserService() {
         // "Low" importance = shows in the shade without making a sound.
         val channel = NotificationChannel(
             CHANNEL_ID, "Radio playback", NotificationManager.IMPORTANCE_LOW)
-        channel.description = "Shows while HiDef Radio is playing"
+        channel.description = getString(R.string.notification_channel_desc)
         getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
     }
 
@@ -1293,7 +1293,7 @@ class RadioService : MediaBrowserService() {
                 if (action == CUSTOM_ACTION_STOP) stopEverything()   // the ⏹ button (Android 13+)
                 if (action == CUSTOM_ACTION_NEXT_HD) nextHdProgram()  // Android Auto's HD button
             }
-            // Android Auto: a preset tapped in the car's list, or "Hey Google, play 95.5 on HiDef Radio"
+            // Android Auto: a preset tapped in the car's list, or "Hey Google, play 95.5 on OpenDial"
             override fun onPlayFromMediaId(mediaId: String, extras: Bundle?) {
                 CarBrowse.parseId(mediaId)?.let { (hz, program) -> tuneFromCar(hz, program) }
             }
@@ -1577,7 +1577,7 @@ class RadioService : MediaBrowserService() {
 
     private fun goForeground(text: String) {
         val notification = buildNotification(
-            NowPlaying("HiDef Radio", text, "", ""), null, playing = true)
+            NowPlaying(getString(R.string.app_name), text, "", ""), null, playing = true)
         // Android 10+ wants to be told what KIND of foreground service this is.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             startForeground(NOTIFICATION_ID, notification,

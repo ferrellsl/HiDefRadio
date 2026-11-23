@@ -1,3 +1,9 @@
+OpenDial: Hybrid Digital Radio for RTL-SDR
+Copyright (C) 2026 ferrellsl (github.com/ferrellsl)
+Source code: https://github.com/ferrellsl/OpenDial
+
+OpenDial is based on HiDef Radio (formerly the HiDef Radio Maps fork):
+
 HiDef Radio
 Copyright (C) 2026 Derek (github.com/derek20la)
 
@@ -7,7 +13,7 @@ This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 
 Source code: https://github.com/derek20la/HiDefRadio
 
-"HD Radio" is a trademark of iBiquity Digital Corporation, an Xperi company. HiDef Radio is an independent hobby project and is not affiliated with or endorsed by Xperi or iBiquity.
+"HD Radio" is a trademark of iBiquity Digital Corporation, an Xperi company. OpenDial and HiDef Radio are independent hobby projects and are not affiliated with or endorsed by Xperi or iBiquity.
 
 
 BUILT-IN LIBRARIES

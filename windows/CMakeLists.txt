@@ -87,7 +87,7 @@ target_compile_definitions(core PUBLIC _WIN32_WINNT=0x0A00 UNICODE _UNICODE WIN3
 target_link_libraries(core PUBLIC engine ole32 oleaut32 avrt windowscodecs shlwapi bcrypt uuid mfplat mfreadwrite mfuuid)
 
 add_executable(HiDefRadio WIN32 src/main.cpp src/sigtext.cpp res/app.rc)
-set_target_properties(HiDefRadio PROPERTIES CXX_STANDARD 17)
+set_target_properties(HiDefRadio PROPERTIES CXX_STANDARD 17 OUTPUT_NAME OpenDial)   # OpenDial.exe
 target_link_libraries(HiDefRadio core d2d1 dwrite comctl32)
 target_link_options(HiDefRadio PRIVATE -static -municode -mwindows)
 

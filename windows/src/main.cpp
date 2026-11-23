@@ -1,4 +1,4 @@
-// HiDef Radio for Windows: the window. Win32 + Direct2D/DirectWrite, drawn the way the
+// OpenDial for Windows: the window. Win32 + Direct2D/DirectWrite, drawn the way the
 // Android app's tablet screen looks: the VFD frequency, HD1-HD8, favorites, now playing with
 // album art, and a right-hand pane with the signal details or the traffic/weather maps.
 #include <windows.h>
@@ -33,7 +33,7 @@ extern "C" void hidef_log_open(const char *path);
 extern "C" int __android_log_print(int, const char *, const char *, ...);
 #define ULOG(...) __android_log_print(4, "Window", __VA_ARGS__)
 
-#define HIDEF_VERSION "1.0.4"
+#define HIDEF_VERSION "2.0"
 
 namespace {
 
@@ -1129,7 +1129,8 @@ INT_PTR CALLBACK settingsProc(HWND dlg, UINT msg, WPARAM wp, LPARAM) {
         SetDlgItemTextW(dlg, IDC_RECFOLDER, shownFolder().c_str());
         const char *ver = "";
         nrsc5_get_version(&ver);
-        std::string about = "HiDef Radio for Windows " HIDEF_VERSION ", from HiDef Radio by derek20la (Android) and its Maps fork. "
+        std::string about = "OpenDial " HIDEF_VERSION ": hybrid digital radio for RTL-SDR. github.com/ferrellsl/OpenDial. "
+                            "Based on HiDef Radio by derek20la (Android). "
                             "nrsc5 " + std::string(ver) + ", FAAD2, FFTW, librtlsdr (RTL-SDR Blog), libusb. GPL-3.0. "
                             "Maps \xC2\xA9 OpenStreetMap contributors (CC BY-SA). " + stations::info() + ".";
         SetDlgItemTextW(dlg, IDC_ABOUT, widen(about).c_str());
@@ -1654,7 +1655,7 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE, PWSTR, int show) {
     RegisterClassExW(&wc);
 
     int x = app.cfg.winX, y = app.cfg.winY, w = app.cfg.winW, h = app.cfg.winH;
-    HWND hwnd = CreateWindowExW(0, wc.lpszClassName, L"HiDef Radio", WS_OVERLAPPEDWINDOW,
+    HWND hwnd = CreateWindowExW(0, wc.lpszClassName, L"OpenDial", WS_OVERLAPPEDWINDOW,
                                 x >= 0 ? x : CW_USEDEFAULT, y >= 0 ? y : CW_USEDEFAULT, w, h, nullptr, nullptr, inst, nullptr);
     if (!hwnd) return 1;
     // dark title bar, like the rest of the window

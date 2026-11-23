@@ -1,9 +1,11 @@
-# HiDef Radio for Windows
+# OpenDial for Windows
 
-An HD Radio (NRSC-5) receiver for an RTL-SDR stick, for Windows 10 and 11. It is the Windows
-version of HiDef Radio, an Android app by derek20la, with the additions from the
-ferrellsl/HiDefRadio fork: traffic and weather maps, date and time stamps on the maps, ad
-image blocking and a signal-details pane.
+Hybrid digital radio (NRSC-5) for an RTL-SDR stick, for Windows 10 and 11: hybrid digital
+FM/AM with traffic and weather maps, no internet needed. It is the Windows version of
+OpenDial (formerly HiDef Radio Maps), which is based on HiDef Radio, an Android app by
+derek20la, and adds traffic and weather maps, date and time stamps on the maps, ad image
+blocking, big album art and a signal-details pane. Version 2.0 installs over HiDef Radio
+for Windows and keeps your settings and favorites.
 
 ## What it does
 
@@ -34,7 +36,7 @@ image blocking and a signal-details pane.
   8-bit I/Q at 1,488,375 samples a second, about 180 MB a minute, which nrsc5 plays back with
   `-r` and most SDR programs open), or both. IQ stops by itself after the limit you set
   (60 s unless you choose otherwise). Changing station or stopping the radio also ends a
-  recording and saves it. Files go to Music\HiDef Radio unless you pick another folder.
+  recording and saves it. Files go to Music\OpenDial (or Music\HiDef Radio, if you recorded there before 2.0) unless you pick another folder.
 
 - HD1-HD8: when a station has more than one program, a button shows the one you hear
   ("HD1 ❯"). Click it and a strip with all of them opens across the window, each with
@@ -66,18 +68,18 @@ the Kotlin app (RadioService, MapFeed, ArtBlock, LogoCache, GainKeeper, Stations
 Build with MSYS2's MinGW-w64 gcc, CMake and Ninja (nrsc5 uses C99 complex numbers, which
 MSVC can't compile). From this `windows` folder:
 
-    powershell -ExecutionPolicy Bypass -File package.ps1 -Version 1.0.6
+    powershell -ExecutionPolicy Bypass -File package.ps1 -Version 2.0.0
 
-That builds `build\HiDefRadio.exe` (one static exe, no DLLs) and its `data` folder (the FCC
+That builds `build\OpenDial.exe` (one static exe, no DLLs) and its `data` folder (the FCC
 station list, the base map, the DSEG7 font and the licenses, copied from the Android app),
 then puts a zip and an Inno Setup installer in `dist`. Needs MSYS2 packages
 mingw-w64-x86_64-gcc, mingw-w64-x86_64-cmake and mingw-w64-x86_64-ninja, and Inno Setup 6.
 
 For older and 32-bit PCs there is a 32-bit build, made the same way with `-Arch x86`:
 
-    powershell -ExecutionPolicy Bypass -File package.ps1 -Version 1.0.6 -Arch x86
+    powershell -ExecutionPolicy Bypass -File package.ps1 -Version 2.0.0 -Arch x86
 
-It builds in `build32` and names its files `HiDefRadio-Windows-<version>-x86`. It needs the
+It builds in `build32` and names its files `OpenDial-Windows-<version>-x86`. It needs the
 32-bit MSYS2 packages mingw-w64-i686-gcc, mingw-w64-i686-cmake and mingw-w64-i686-ninja.
 Like the 64-bit build it needs a CPU with SSE2, SSE3 and SSSE3 (Intel Core 2, Atom or later;
 AMD Bobcat, Bulldozer or later).
@@ -85,7 +87,7 @@ If the 32-bit gcc stops without a message (error 0xC0000139), an old program has
 libgcc_s_dw2-1.dll or libwinpthread-1.dll in Windows\SysWOW64, which Windows loads first:
 copy MSYS2's two from mingw32\bin into mingw32\lib\gcc\i686-w64-mingw32\<version>.
 
-Settings, favorites and blocked pictures are kept in `%APPDATA%\HiDefRadio`. Saved logos,
+Settings, favorites and blocked pictures are kept in `%APPDATA%\HiDefRadio` (the name from before 2.0, kept so updates keep them). Saved logos,
 radar frames and the log file (`hidefradio.log`) are kept in `%LOCALAPPDATA%\HiDefRadio`.
 
 ## License

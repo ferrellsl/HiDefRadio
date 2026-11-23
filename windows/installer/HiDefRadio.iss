@@ -1,4 +1,4 @@
-; HiDef Radio for Windows - installer (Inno Setup 6). Built by package.ps1, which passes
+; OpenDial for Windows (formerly HiDef Radio) - installer (Inno Setup 6). Built by package.ps1, which passes
 ; the version, the folder with the files and x64 or x86: ISCC /DAppVersion=1.0.0 /DSourceDir=... /DArch=x64 HiDefRadio.iss
 
 #ifndef AppVersion
@@ -13,23 +13,25 @@
   #define Suffix ""
 #endif
 #ifndef SourceDir
-  #define SourceDir "..\dist\HiDefRadio-Windows-" + AppVersion + Suffix
+  #define SourceDir "..\dist\OpenDial-Windows-" + AppVersion + Suffix
 #endif
 
 [Setup]
 AppId={{6C1B7E2A-4D0F-4B7E-9C51-5E0D2A7F3B91}
-AppName=HiDef Radio
+AppName=OpenDial
 AppVersion={#AppVersion}
-AppVerName=HiDef Radio {#AppVersion}
+AppVerName=OpenDial {#AppVersion}
 AppPublisher=ferrellsl
-AppPublisherURL=https://github.com/ferrellsl/HiDefRadio
-AppSupportURL=https://github.com/ferrellsl/HiDefRadio/issues
-DefaultDirName={autopf}\HiDef Radio
-DefaultGroupName=HiDef Radio
+AppPublisherURL=https://github.com/ferrellsl/OpenDial
+AppSupportURL=https://github.com/ferrellsl/OpenDial/issues
+DefaultDirName={autopf}\OpenDial
+DefaultGroupName=OpenDial
+; the same AppId as HiDef Radio, so it updates it in place (keeping its folder); the Start menu gets the new name
+UsePreviousGroup=no
 DisableProgramGroupPage=yes
-UninstallDisplayIcon={app}\HiDefRadio.exe
+UninstallDisplayIcon={app}\OpenDial.exe
 OutputDir=..\dist
-OutputBaseFilename=HiDefRadio-Windows-{#AppVersion}{#Suffix}-Setup
+OutputBaseFilename=OpenDial-Windows-{#AppVersion}{#Suffix}-Setup
 SetupIconFile=..\res\app.ico
 Compression=lzma2/max
 SolidCompression=yes
@@ -43,20 +45,26 @@ WizardStyle=modern
 PrivilegesRequiredOverridesAllowed=dialog
 
 [Files]
-Source: "{#SourceDir}\HiDefRadio.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#SourceDir}\OpenDial.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#SourceDir}\README.txt"; DestDir: "{app}"; Flags: ignoreversion isreadme
 Source: "{#SourceDir}\data\*"; DestDir: "{app}\data"; Flags: ignoreversion recursesubdirs createallsubdirs
 
+[InstallDelete]
+; what HiDef Radio (before the rename) left: its exe and its shortcuts
+Type: files; Name: "{app}\HiDefRadio.exe"
+Type: filesandordirs; Name: "{autoprograms}\HiDef Radio"
+Type: files; Name: "{autodesktop}\HiDef Radio.lnk"
+
 [Icons]
-Name: "{group}\HiDef Radio"; Filename: "{app}\HiDefRadio.exe"
-Name: "{group}\Uninstall HiDef Radio"; Filename: "{uninstallexe}"
-Name: "{autodesktop}\HiDef Radio"; Filename: "{app}\HiDefRadio.exe"; Tasks: desktopicon
+Name: "{group}\OpenDial"; Filename: "{app}\OpenDial.exe"
+Name: "{group}\Uninstall OpenDial"; Filename: "{uninstallexe}"
+Name: "{autodesktop}\OpenDial"; Filename: "{app}\OpenDial.exe"; Tasks: desktopicon
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Run]
-Filename: "{app}\HiDefRadio.exe"; Description: "{cm:LaunchProgram,HiDef Radio}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\OpenDial.exe"; Description: "{cm:LaunchProgram,OpenDial}"; Flags: nowait postinstall skipifsilent
 
 ; Settings, favorites and blocked pictures (%APPDATA%\HiDefRadio) and saved logos and radar
 ; (%LOCALAPPDATA%\HiDefRadio) are left in place on uninstall, like most Windows programs.

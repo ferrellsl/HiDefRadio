@@ -1,8 +1,10 @@
-# HiDef Radio
+# OpenDial
 
-> **This fork adds traffic and weather maps and ad image blocking** to [HiDef Radio by derek20la](https://github.com/derek20la/HiDefRadio). The maps are received over the air, with no internet. Download **HiDef Radio Maps** for Android or Windows from the [Releases](https://github.com/ferrellsl/HiDefRadio/releases) page.
+**Hybrid Digital Radio for RTL-SDR.** Hybrid digital FM/AM with traffic and weather maps, no internet needed. For Android and Windows.
+
+> **Formerly HiDef Radio Maps.** OpenDial began as a fork of [HiDef Radio by derek20la](https://github.com/derek20la/HiDefRadio) and is now its own project, with traffic and weather maps, ad image blocking, Android Auto, big album art and a Windows version. It installs over HiDef Radio Maps and keeps your favorites and settings. Download it for Android or Windows from the [Releases](https://github.com/ferrellsl/OpenDial/releases) page.
 >
-> **This fork is actively maintained.** Report problems under [Issues](https://github.com/ferrellsl/HiDefRadio/issues), and ask questions or share what you receive in [Discussions](https://github.com/ferrellsl/HiDefRadio/discussions).
+> **Actively maintained.** Report problems under [Issues](https://github.com/ferrellsl/OpenDial/issues), and ask questions or share what you receive in [Discussions](https://github.com/ferrellsl/OpenDial/discussions).
 
 | Traffic | Weather radar |
 |---|---|
@@ -14,35 +16,33 @@ Stations with the Total Traffic Network or HERE data services send these maps. E
 
 **32-bit build:** the Releases page also has a `-32bit` APK, for older devices such as 32-bit car head units and old tablets.
 
-**Tried it on a car head unit?** I don't have an Android head unit to test with, so I'd love to hear from anyone who has sideloaded the app and got the dongle working on one. Please tell me how it went, good or bad (the head unit model, which APK you used, and how the dongle is connected), under [Issues](https://github.com/ferrellsl/HiDefRadio/issues) or in [Discussions](https://github.com/ferrellsl/HiDefRadio/discussions).
+**Tried it on a car head unit?** I don't have an Android head unit to test with, so I'd love to hear from anyone who has sideloaded the app and got the dongle working on one. Please tell me how it went, good or bad (the head unit model, which APK you used, and how the dongle is connected), under [Issues](https://github.com/ferrellsl/OpenDial/issues) or in [Discussions](https://github.com/ferrellsl/OpenDial/discussions).
 
-**Android Auto:** HiDef Radio shows up in Android Auto's launcher, which gives HD Radio to a car that doesn't have it. The car's screen shows the album art and station logos, the song title and artist, play/pause, ⏮ ⏭ for your favorites, Stop, and an **HD** button that steps through HD1, HD2 and so on while the station has more than one. Your favorites are listed as tiles to tap and tune, and "Hey Google, play 95.5 HD2 on HiDef Radio Maps" tunes by voice. The traffic and weather maps stay on the phone, since Android Auto doesn't allow pictures like them. The dongle needs the phone's USB port, so use wireless Android Auto, or a USB hub that connects the phone, the dongle and the car (one from Anker works).
+**Android Auto:** OpenDial shows up in Android Auto's launcher, which gives HD Radio to a car that doesn't have it. The car's screen shows the album art and station logos, the song title and artist, play/pause, ⏮ ⏭ for your favorites, Stop, and an **HD** button that steps through HD1, HD2 and so on while the station has more than one. Your favorites are listed as tiles to tap and tune, and "Hey Google, play 95.5 HD2 on OpenDial" tunes by voice. The traffic and weather maps stay on the phone, since Android Auto doesn't allow pictures like them. The dongle needs the phone's USB port, so use wireless Android Auto, or a USB hub that connects the phone, the dongle and the car (one from Anker works).
 
 To set it up (once, on the phone):
 
 1. **Allow apps from outside the Play Store.** Open Android Auto's settings (Settings → Connected devices → Connection preferences → Android Auto, or search Settings for "Android Auto"). Scroll to the bottom and tap **Version** ten times, then say OK to turn on developer settings. Open the ⋮ menu at the top right, tap **Developer settings**, and turn on **Unknown sources**. Without this, Android Auto hides apps that weren't installed from the Play Store.
-2. **Put the app on the car's screen.** Back in Android Auto's settings, tap **Customize launcher** and tick **HiDef Radio Maps** (drag it up the list to put it near the front).
+2. **Put the app on the car's screen.** Back in Android Auto's settings, tap **Customize launcher** and tick **OpenDial** (drag it up the list to put it near the front).
 3. **Allow the dongle.** Plug in the dongle and start the radio on the phone once, so Android remembers the USB permission. If the car's ▶ doesn't start the radio later, start it on the phone.
 
-Then connect to the car and pick HiDef Radio Maps from the Android Auto launcher.
+Then connect to the car and pick OpenDial from the Android Auto launcher.
 
-**Phones and tablets:** Android Auto works with any phone. On a tablet it works only if the tablet takes a SIM card, because then Android treats it as a phone; the ALLDOCUBE iPlay 50 is one that runs Android Auto. On a Wi-Fi-only tablet, Android Auto may install from an APK, but its settings won't open, or the car refuses it with a message that the app wasn't bundled with the system by the manufacturer (tried on a Samsung tablet and a Lenovo Legion Y700). HiDef Radio Maps itself still runs fine on those tablets, with the full-screen maps, just not on the car's screen. A tablet with a SIM slot gives you both: the album art and controls on the car's screen, and the maps full-screen on the tablet.
+**Phones and tablets:** Android Auto works with any phone. On a tablet it works only if the tablet takes a SIM card, because then Android treats it as a phone; the ALLDOCUBE iPlay 50 is one that runs Android Auto. On a Wi-Fi-only tablet, Android Auto may install from an APK, but its settings won't open, or the car refuses it with a message that the app wasn't bundled with the system by the manufacturer (tried on a Samsung tablet and a Lenovo Legion Y700). OpenDial itself still runs fine on those tablets, with the full-screen maps, just not on the car's screen. A tablet with a SIM slot gives you both: the album art and controls on the car's screen, and the maps full-screen on the tablet.
 
-**Windows version:** HiDef Radio also runs on Windows 10 and 11 with the same RTL-SDR dongle: HD Radio and analog FM/AM, album art and logos, the traffic and weather maps with their time stamps, ad image blocking, recording (audio and IQ), favorites and the signal details. Get the installer or the zip from the [Releases](https://github.com/ferrellsl/HiDefRadio/releases) page. The dongle needs the WinUSB driver, which [Zadig](https://zadig.akeo.ie) installs. It uses the Android app's own radio engine, built for Windows; see [windows/README.md](windows/README.md). There is also a 32-bit Windows build (the `-x86` zip and installer), for older 32-bit tablets and PCs running Windows 10.
+**Windows version:** OpenDial also runs on Windows 10 and 11 with the same RTL-SDR dongle: HD Radio and analog FM/AM, album art and logos, the traffic and weather maps with their time stamps, ad image blocking, recording (audio and IQ), favorites and the signal details. Get the installer or the zip from the [Releases](https://github.com/ferrellsl/OpenDial/releases) page. The dongle needs the WinUSB driver, which [Zadig](https://zadig.akeo.ie) installs. It uses the Android app's own radio engine, built for Windows; see [windows/README.md](windows/README.md). There is also a 32-bit Windows build (the `-x86` zip and installer), for older 32-bit tablets and PCs running Windows 10.
 
 **Big album art:** double-tap the album art (double-click on Windows) and it takes over the screen's left column. The station, HD program, song and artist move into one line above the picture, which scrolls slowly when it's too long to fit, and the favorites and the lines under the picture hide to give it their room. On Android the signal line moves to the bottom of the screen, under the picture. Double-tap the picture or the scrolling line to go back. The app remembers which view you picked, which suits a tablet used as a car radio. Holding a finger on the picture still blocks it. Since Android 1.3.1-maps8 and Windows 1.0.5; the picture below is the Windows version.
 
-![HiDef Radio for Windows in big album art mode: the song scrolls above the station's picture, with the weather radar beside it](docs/images/windows-big-art.png)
+![OpenDial for Windows in big album art mode: the song scrolls above the station's picture, with the weather radar beside it](docs/images/windows-big-art.png)
 
 ---
-
-![HiDef Radio: over-the-air FM and digital radio for RTL-SDR dongles](store/feature_graphic_1024x500.png)
 
 An Android radio for the **RTL-SDR dongle**. Plug the dongle into the phone with a USB-OTG adapter and listen to **HD Radio™ (NRSC-5)** and ordinary **analog FM**, with a smooth blend between the two, like a car radio.
 
 No root, no computer, no internet connection needed (a dongle on another computer over your Wi-Fi works too, since 1.2). Everything you hear and see comes from the antenna: audio, station names, song titles, station logos and album art.
 
-> **Status: 1.3.1.** The APKs are on this fork's [Releases](https://github.com/ferrellsl/HiDefRadio/releases) page. Developed on a Moto G Stylus 2024 (Android 15) with an RTL-SDR Blog V4 in Los Angeles, and also run on a Pixel 8.
+> **Status: 2.0**, for Android and Windows, on the [Releases](https://github.com/ferrellsl/OpenDial/releases) page. HiDef Radio was first developed by derek20la on a Moto G Stylus 2024 (Android 15) with an RTL-SDR Blog V4 in Los Angeles. OpenDial is tested on a Galaxy Tab S7+, a Lenovo Legion Y700, an OPPO Find N5 and Windows 11.
 
 <p>
   <img src="store/screenshots/1_hd_station_and_favorites.png" width="250" alt="An HD station with its logo, song title and the favorites strip">
@@ -109,7 +109,7 @@ Settings → Source → **rtl_tcp server on the network**: the dongle sits on a 
 
 A dongle plugged into the phone always comes first (since 1.3): with one plugged in, the radio plays from it even when the source is rtl_tcp, and plugging one in while rtl_tcp plays switches to it at once. The setting stays as it is - unplug the dongle, and the next start is rtl_tcp again.
 
-**Android 17 and later** ask before an app may connect to anything on your home network. The first time you start the radio with the rtl_tcp source, the app explains why and Android asks to allow **Nearby devices** (local network access); without it the server can't be reached. If you said no, allow it later in Android's settings: Apps > HiDef Radio > Permissions > Nearby devices (since 1.2.1).
+**Android 17 and later** ask before an app may connect to anything on your home network. The first time you start the radio with the rtl_tcp source, the app explains why and Android asks to allow **Nearby devices** (local network access); without it the server can't be reached. If you said no, allow it later in Android's settings: Apps > OpenDial > Permissions > Nearby devices (since 1.2.1).
 
 If the app says "can't connect … (no answer)":
 - the phone and the server must be on the same network (a guest Wi-Fi keeps devices apart);
@@ -134,7 +134,7 @@ The dongle is powered by the phone, and on a phone with one USB port you can't c
 
 ## Feedback
 
-Please tell me which phone or tablet and which dongle you use, and what works or doesn't: report problems under [Issues](https://github.com/ferrellsl/HiDefRadio/issues), and ask questions or share what you receive in [Discussions](https://github.com/ferrellsl/HiDefRadio/discussions). The speed test's three numbers and your device's model help too: they show how much room slower devices have.
+Please tell me which phone or tablet and which dongle you use, and what works or doesn't: report problems under [Issues](https://github.com/ferrellsl/OpenDial/issues), and ask questions or share what you receive in [Discussions](https://github.com/ferrellsl/OpenDial/discussions). The speed test's three numbers and your device's model help too: they show how much room slower devices have.
 
 ## Building
 
@@ -149,7 +149,7 @@ All native libraries are built from source by Android Studio's CMake. Their sour
 
 Good to know:
 
-- The debug build installs as a separate app, **HiDef Radio dev** (`io.github.derek20la.hidefradio.debug`), so it can sit next to a release install.
+- The debug build installs as a separate app, **OpenDial dev** (`io.github.ferrellsl.hidefradio.debug`), so it can sit next to a release install.
 - A release build is signed only if you put a `keystore.properties` file with your own key in the project's root folder. The four lines it needs are described at the top of `app/build.gradle.kts`. That file and the key are git-ignored. Without it everything still builds, and the release build is just not signed.
 - The native code is built for 64-bit and 32-bit ARM (`abiFilters` in `app/build.gradle.kts`), as plain arm64-v8a and armeabi-v7a baselines: no `-march`, nothing beyond what every such device has. The signal processing uses **NEON** (four floats per instruction, part of every arm64 phone): the FM demodulator through its own `vec4.hpp`, nrsc5 through its `HAVE_NEON` paths, and FFTW through its NEON codelets, which `CMakeLists.txt` adds by hand because FFTW's own CMake build doesn't know them. Everything also builds and runs without NEON (the PC harness) with the same arithmetic order, so results can be compared across machines.
 
@@ -246,7 +246,7 @@ FM stereo has a blend of its own: full stereo above 36 dB of quieting, mono belo
 
 ## Credits and licenses
 
-HiDef Radio stands on the shoulders of these projects:
+OpenDial stands on the shoulders of these projects, starting with [HiDef Radio by derek20la](https://github.com/derek20la/HiDefRadio):
 
 | Component | What it does | License |
 |---|---|---|
@@ -278,7 +278,7 @@ Each library's own license file is in its folder under `app/src/main/cpp/externa
 
 ## Trademarks
 
-"HD Radio" is a trademark of iBiquity Digital Corporation, an Xperi company. HiDef Radio is an independent hobby project. It is not affiliated with or endorsed by Xperi or iBiquity.
+"HD Radio" is a trademark of iBiquity Digital Corporation, an Xperi company. OpenDial, like HiDef Radio, is an independent hobby project. It is not affiliated with or endorsed by Xperi or iBiquity.
 
 The station logos and album art in the screenshots were received over the air and belong to their owners.
 
