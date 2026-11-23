@@ -42,7 +42,7 @@ An Android radio for the **RTL-SDR dongle**. Plug the dongle into the phone with
 
 No root, no computer, no internet connection needed (a dongle on another computer over your Wi-Fi works too, since 1.2). Everything you hear and see comes from the antenna: audio, station names, song titles, station logos and album art.
 
-> **Status: 1.3.1.** On Google Play, and an APK is on the [Releases](https://github.com/derek20la/HiDefRadio/releases) page (see [Get the app](#get-the-app)). Developed on a Moto G Stylus 2024 (Android 15) with an RTL-SDR Blog V4 in Los Angeles, and also run on a Pixel 8.
+> **Status: 1.3.1.** The APKs are on this fork's [Releases](https://github.com/ferrellsl/HiDefRadio/releases) page. Developed on a Moto G Stylus 2024 (Android 15) with an RTL-SDR Blog V4 in Los Angeles, and also run on a Pixel 8.
 
 <p>
   <img src="store/screenshots/1_hd_station_and_favorites.png" width="250" alt="An HD station with its logo, song title and the favorites strip">
@@ -132,27 +132,9 @@ Nothing is collected: no ads, no account, no tracking. Recordings (1.3) go only 
 
 The dongle is powered by the phone, and on a phone with one USB port you can't charge while it is plugged in. Measured on a Moto G Stylus 2024 with a V4, screen off: about 530 mA, roughly 12 % of the battery per hour. The dongle itself draws about two thirds of that.
 
-## Get the app
+## Feedback
 
-There are two ways. Please pick one and stay with it: the Play version is signed with Google's key and the APK with the developer's own key, so Android treats them as two different apps. To move from one to the other you have to uninstall first; take your favorites along with Settings → Storage → Export favorites, and Import them after (from 1.1).
-
-### Join the test on Google Play
-
-This is the way that helps most. Google asks new developers to run a closed test with at least 12 testers for 14 days before an app can be published, and only installs from Play count.
-
-1. Join the testers' group: <https://groups.google.com/g/hidef-radio-testers>
-2. Become a tester: <https://play.google.com/apps/testing/io.github.derek20la.hidefradio>
-3. Install HiDef Radio from the Play Store link on that page.
-
-### Or download the APK
-
-Get the newest `HiDefRadio-...apk` from the [Releases](https://github.com/derek20la/HiDefRadio/releases) page and open it on the phone. Android asks you once to allow installs from your browser or file manager. The APK is built from this source with nothing added.
-
-To check a download: the signing certificate's SHA-256 is `0f7ba7ed4584a04293a2a76fd8b2cfd4ff83416f1c66f0647d30c329d5032117`.
-
-### Feedback
-
-Please tell me which phone and dongle you use and what works or doesn't: open an issue here, or write to hidefradioapp@yahoo.com. The speed test's three numbers and your phone's model help too: they show how much room slower phones have.
+Please tell me which phone or tablet and which dongle you use, and what works or doesn't: report problems under [Issues](https://github.com/ferrellsl/HiDefRadio/issues), and ask questions or share what you receive in [Discussions](https://github.com/ferrellsl/HiDefRadio/discussions). The speed test's three numbers and your device's model help too: they show how much room slower devices have.
 
 ## Building
 
@@ -252,7 +234,7 @@ FM stereo has a blend of its own: full stereo above 36 dB of quieting, mono belo
 - In Auto, HD1 plays about 2.5 seconds behind Digital only. That delay is what makes the look-ahead possible.
 - Analog AM (1.1) has so far been proven on recordings of two stations (KMZT 1260, KBRT 740) in the desktop harness, not yet on the phone; the audio bandwidth is 5 kHz by default (Settings > AM audio bandwidth: 3, 5, 8 or 10 kHz). In Auto the sound on AM starts about 3 s after tuning, since the analog plays that far behind live there. The AM signal meter's bars (carrier-to-noise) still have first-guess thresholds. C-QUAM stereo is proven on a made-up signal only - no C-QUAM station is within reach of Los Angeles - so which channel is the left one has not been confirmed on the air. The clock correction does not run on AM (the envelope alignment is not fine enough to measure a crystal); with a non-TCXO dongle the blend re-aligns about every 40 s there.
 - AM HD has had little on-air testing: one station (KMZT 1260 kHz in Los Angeles) heard on the phone with an RTL-SDR Blog V4, plus off-air recordings run through the app's engine (`tools/harness`). AM with a V3 has not been tried yet.
-- Most testing so far has been in the Los Angeles area. Testers have run it in other places and on other phones and dongles too, and more reports are what the closed test is for.
+- Most testing so far has been in the Los Angeles area. Testers have run it in other places and on other phones and dongles too, and more reports are welcome (see [Feedback](#feedback)).
 
 ## Plans
 
