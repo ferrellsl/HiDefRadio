@@ -338,6 +338,21 @@
                         android:textSize="13sp"
                         android:visibility="gone" />
 
+                    <!-- Big album art (double-tap the picture): the station, program, song and artist
+                         scroll in this one line above it, and the lines under the picture hide. -->
+                    <TextView
+                        android:id="@+id/big_marquee"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:ellipsize="marquee"
+                        android:gravity="center"
+                        android:marqueeRepeatLimit="marquee_forever"
+                        android:singleLine="true"
+                        android:textSize="24sp"
+                        android:visibility="gone"
+                        tools:text="KRTH   •   HD1 · Adult Hits   •   If You Leave   •   OMD" />
+
                     <ImageView
                         android:id="@+id/now_image"
                         android:layout_width="match_parent"
@@ -357,8 +372,8 @@
 
                         <ImageView
                             android:id="@+id/station_logo"
-                            android:layout_width="44dp"
-                            android:layout_height="44dp"
+                            android:layout_width="36dp"
+                            android:layout_height="36dp"
                             android:layout_marginEnd="12dp"
                             android:contentDescription="@string/station_logo"
                             android:scaleType="fitCenter"
@@ -370,7 +385,7 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:textAppearance="?attr/textAppearanceHeadline4"
-                            android:textSize="40sp"
+                            android:textSize="28sp"
                             tools:text="KRTH" />
 
                         <!-- 9e step 1: ☆ = not a preset (tap to save), ★ = a preset (tap to remove) -->

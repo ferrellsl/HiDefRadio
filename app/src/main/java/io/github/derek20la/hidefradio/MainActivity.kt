@@ -28,6 +28,7 @@ import android.text.style.ForegroundColorSpan
 import android.text.TextPaint
 import android.util.Log
 import android.util.TypedValue
+import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
@@ -180,6 +181,10 @@ class MainActivity : AppCompatActivity() {
     private var shownArt: ByteArray? = null  // the album art on screen, for blocking it
     private var detailsOpen = false
     private var paneDetailsOpen = true       // the same on a tablet: its details pane (remembered apart)
+    private var bigArt = false               // double-tap the picture: big album art, the text scrolls above it
+    private var bigShown = false             // ...and it is showing (radio on, a picture to show)
+    private var normalArtH = 0               // the picture's height from the layout, when it isn't big
+    private var signalTopMargin = 0          // the signal line's top margin from the layout (big art pins it to the bottom)
     // Build 15: a tablet at least 720 dp wide (smallest side >= 600 dp, width >= 720 dp right now) uses
     // layout-sw600dp-w720dp/activity_main.xml, where the details have a pane of their own and are
     // always open. From res/values(-sw600dp-w720dp)/bools.xml - always the same answer as the layout.
@@ -609,6 +614,7 @@ class MainActivity : AppCompatActivity() {
         updateNowPlaying(service != null, programs, selected, freqHz, signal)
         updateSignal(service != null, signal)
         updatePictures(service, selected, freqHz)
+        applyBigArt(service != null)
         // 9e step 3: radio off -> offer to start it again.
         binding.startButton.visibility = if (service == null) View.VISIBLE else View.GONE
         updatePauseButton(service)
@@ -791,6 +797,7 @@ class MainActivity : AppCompatActivity() {
 
         val big = art ?: logo
         binding.nowImage.setImageBitmap(big)
+        if (bigShown) sizeArt()                           // a new picture may have another shape
         binding.nowImage.visibility = if (big != null) View.VISIBLE else View.GONE
 
         val small = if (art != null) logo else null
@@ -1506,6 +1513,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     /** Tap the signal line = open/close the details. The button = open/close the debug text. */
+    @SuppressLint("ClickableViewAccessibility")     // the picture keeps its own click handling
     private fun setUpToggles() {
         val prefs = getSharedPreferences(UI_PREFS, Context.MODE_PRIVATE)
         detailsOpen = prefs.getBoolean(KEY_DETAILS_OPEN, false)
@@ -1548,6 +1556,23 @@ class MainActivity : AppCompatActivity() {
                 true
             }
         }
+        // Double-tap the picture (or the line above it) for big album art, and again to go back.
+        bigArt = prefs.getBoolean(KEY_BIG_ART, false)
+        normalArtH = binding.nowImage.layoutParams.height
+        signalTopMargin = (binding.signalBox.layoutParams as ViewGroup.MarginLayoutParams).topMargin
+        val taps = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
+            override fun onDoubleTap(e: MotionEvent): Boolean {
+                bigArt = !bigArt
+                prefs.edit().putBoolean(KEY_BIG_ART, bigArt).apply()
+                refreshScreen()
+                return true
+            }
+        })
+        // the picture still gets the touches itself (holding a finger on it blocks it)
+        binding.nowImage.setOnTouchListener { _, e -> taps.onTouchEvent(e); false }
+        binding.bigMarquee.setOnTouchListener { _, e -> taps.onTouchEvent(e); true }
+        // the room under the picture changes (rotation, the details opening): size it again
+        (binding.nowImage.parent as View).addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> sizeArt() }
         binding.debugToggle.setOnClickListener {
             debugOpen = !debugOpen
             prefs.edit().putBoolean(KEY_DEBUG_OPEN, debugOpen).apply()
@@ -1609,7 +1634,7 @@ class MainActivity : AppCompatActivity() {
      * which is exactly what scrollY counts in.
      */
     private fun updateSticky(scrollY: Int) {
-        val row = binding.stationRow
+        val row = if (bigShown) binding.bigMarquee else binding.stationRow
         val show = RadioService.instance != null && row.height > 0 &&
             scrollY > row.top + row.height / 2
         if (show == stickyShown) return
@@ -1631,7 +1656,92 @@ class MainActivity : AppCompatActivity() {
     /** Shows the text, or hides the line completely if there's nothing to show. */
     private fun setTextOrHide(view: TextView, text: String) {
         view.text = text
-        view.visibility = if (text.isBlank()) View.GONE else View.VISIBLE
+        val bigHides = bigShown && (view === binding.programName || view === binding.songTitle || view === binding.songArtist)
+        view.visibility = if (text.isBlank() || bigHides) View.GONE else View.VISIBLE
+    }
+
+    // ------------------------------------------------------------------ big album art
+
+    /**
+     * Big album art (double-tap the picture, again to go back): the station, program, song
+     * and artist move into one line above the picture, which scrolls (marquee) when it's too
+     * long, and the favorites and the lines under the picture hide, so the picture can grow
+     * down to the signal line. Only while the radio plays and there is a picture.
+     */
+    private fun applyBigArt(running: Boolean) {
+        val big = bigArt && running && binding.nowImage.visibility == View.VISIBLE
+        val marquee = binding.bigMarquee
+        if (big) {
+            val line = listOf(binding.stationName, binding.programName, binding.songTitle, binding.songArtist)
+                .map { it.text.toString().trim() }.filter { it.isNotEmpty() }.distinct()
+                .joinToString("   •   ")
+            if (marquee.text.toString() != line) marquee.text = line
+            marquee.visibility = View.VISIBLE
+            marquee.isSelected = true                     // a marquee scrolls only while selected
+            for (v in listOf(binding.stationRow, binding.programName, binding.songTitle, binding.songArtist,
+                             binding.presetScroll, binding.presetHint))
+                if (v.visibility != View.GONE) v.visibility = View.GONE
+        } else if (bigShown) {                            // back: show what big art hid
+            marquee.visibility = View.GONE
+            binding.stationRow.visibility = View.VISIBLE
+            for (v in listOf(binding.programName, binding.songTitle, binding.songArtist))
+                v.visibility = if (v.text.isBlank()) View.GONE else View.VISIBLE
+            val none = binding.presetRow.childCount == 0
+            binding.presetHint.visibility = if (none) View.VISIBLE else View.GONE
+            binding.presetScroll.visibility = if (none) View.GONE else View.VISIBLE
+        }
+        if (big != bigShown) {
+            bigShown = big
+            sizeArt()
+        }
+    }
+
+    /**
+     * The picture's height. Big: all the room down to the signal line, which is pinned to the
+     * bottom of the screen; the picture is only as tall as its shape needs at the column's
+     * width, and any room left over goes above the signal line, not around the picture.
+     * Otherwise the layout's height, but smaller (not under 120dp) when that would push the
+     * station, song and signal line off the bottom (a short window, e.g. the Find N5 unfolded).
+     */
+    private fun sizeArt() {
+        binding.nowImage.post {
+            val img = binding.nowImage
+            val lp = img.layoutParams
+            val dp = resources.displayMetrics.density
+            val pinnedMargin = (4 * dp).toInt()
+            var want = normalArtH
+            var signalMargin = signalTopMargin
+            if (img.width > 0 && img.visibility == View.VISIBLE) {
+                val parent = img.parent as ViewGroup
+                var below = 0
+                for (i in parent.indexOfChild(img) + 1..parent.indexOfChild(binding.signalBox)) {
+                    val c = parent.getChildAt(i)
+                    if (c.visibility == View.GONE) continue
+                    val m = c.layoutParams as ViewGroup.MarginLayoutParams
+                    val top = if (c === binding.signalBox) (if (bigShown) pinnedMargin else signalTopMargin) else m.topMargin
+                    below += c.height + top + m.bottomMargin
+                }
+                val room = binding.scroll.height - img.top - below - (8 * dp).toInt()
+                if (bigShown) {
+                    val d = img.drawable
+                    val fullH = if (d != null && d.intrinsicWidth > 0 && d.intrinsicHeight > 0)
+                        img.width * d.intrinsicHeight / d.intrinsicWidth else img.width
+                    want = maxOf((120 * dp).toInt(), minOf(room, fullH))
+                    signalMargin = pinnedMargin + maxOf(0, room - want)
+                } else {
+                    want = maxOf((120 * dp).toInt(), minOf(room, normalArtH))
+                }
+            }
+            if (abs(lp.height - want) > 2) {
+                lp.height = want
+                img.layoutParams = lp
+            }
+            val sp = binding.signalBox.layoutParams as ViewGroup.MarginLayoutParams
+            if (abs(sp.topMargin - signalMargin) > 2) {
+                sp.topMargin = signalMargin
+                binding.signalBox.layoutParams = sp
+            }
+        }
     }
 
     private fun color(id: Int): Int = ContextCompat.getColor(this, id)
@@ -1687,8 +1797,8 @@ class MainActivity : AppCompatActivity() {
         if (key == shownPresetsKey) return
         shownPresetsKey = key
 
-        binding.presetHint.visibility = if (presets.isEmpty()) View.VISIBLE else View.GONE
-        binding.presetScroll.visibility = if (presets.isEmpty()) View.GONE else View.VISIBLE
+        binding.presetHint.visibility = if (presets.isEmpty() && !bigShown) View.VISIBLE else View.GONE
+        binding.presetScroll.visibility = if (presets.isEmpty() || bigShown) View.GONE else View.VISIBLE
 
         val row = binding.presetRow
         row.removeAllViews()
@@ -2300,5 +2410,6 @@ class MainActivity : AppCompatActivity() {
         private const val KEY_DETAILS_OPEN = "details_open"
         private const val KEY_PANE_DETAILS_OPEN = "pane_details_open"
         private const val KEY_DEBUG_OPEN = "debug_open"
+        private const val KEY_BIG_ART = "big_art"
     }
 }
