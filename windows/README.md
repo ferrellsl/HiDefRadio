@@ -24,8 +24,8 @@ for Windows and keeps your settings and favorites.
   The station, program, song and artist move into one line above it, which scrolls when it
   is too long, and the favorites hide meanwhile. Double-click the picture or that line to go
   back. The app remembers the choice (since 1.0.5).
-- Blocks ad pictures: right-click the album art and choose "Block this picture". Settings
-  clears the list.
+- Blocks ads: right-click or tap/hold for tablets on the ad image and choose "Block this picture".
+  Settings clears the list.
 - Signal details: MER, BER, sync, gain, analog quieting, RDS, blend and alignment, and the
   station's FCC record, and the OpenStreetMap credit for the maps. Click the signal line or the "Signal details" heading to show or
   hide them. When they are hidden, the maps take their place.
